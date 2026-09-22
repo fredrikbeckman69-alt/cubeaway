@@ -148,25 +148,25 @@
           <div class="modal-body">
             <!-- Flikar: Nivå Topp 10 vs All-Time High Topp 30 -->
             <div class="lb-tabs-header">
-              <button class="lb-tab-btn active" id="tab-level-lb">🎯 Nivå <span id="lb-selected-level-num">1</span> (Topp 10)</button>
-              <button class="lb-tab-btn" id="tab-alltime-lb">👑 All-Time High (Topp 30)</button>
+              <button class="lb-tab-btn" id="tab-level-lb">🎯 Nivå <span id="lb-selected-level-num">1</span> (Topp 10)</button>
+              <button class="lb-tab-btn active" id="tab-alltime-lb">👑 All-Time High (Topp 30)</button>
             </div>
 
             <!-- Nivåväljare (visas när Nivå-fliken är aktiv) -->
-            <div class="lb-level-switcher" id="lb-level-switcher">
+            <div class="lb-level-switcher hidden" id="lb-level-switcher">
               <button class="btn btn-secondary btn-sm" id="lb-prev-level" title="Föregående nivå">‹</button>
               <span class="lb-level-title" id="lb-level-title">Nivå 1</span>
               <button class="btn btn-secondary btn-sm" id="lb-next-level" title="Nästa nivå">›</button>
             </div>
 
             <div class="leaderboard-table-container">
-              <table class="leaderboard-table" id="leaderboard-table">
+              <table class="leaderboard-table mode-alltime" id="leaderboard-table">
                 <thead>
                   <tr>
                     <th class="col-rank">Plats</th>
                     <th class="col-player">Spelare</th>
                     <th class="col-score">Poäng</th>
-                    <th id="lb-th-level" class="col-level hidden">Nivå</th>
+                    <th id="lb-th-level" class="col-level">Nivå</th>
                     <th class="col-date">Datum</th>
                   </tr>
                 </thead>
@@ -194,8 +194,9 @@
               </div>
             </div>
 
-            <div class="leaderboard-footer">
-              <button class="btn btn-primary" id="close-highscore-btn" style="width: 100%;">Stäng</button>
+            <div class="leaderboard-footer" style="display: flex; gap: 10px; justify-content: space-between;">
+              <button class="btn btn-secondary btn-sm" id="sync-highscores-btn" title="Återställ alla tidigare sparade rekord från localhost">🔄 Återställ alla highscores</button>
+              <button class="btn btn-primary" id="close-highscore-btn" style="flex: 1;">Stäng</button>
             </div>
           </div>
         </div>

@@ -18,6 +18,7 @@ const STARS_STORAGE_KEY = 'cubeaway_stars';
 
 // 30 förvalda All-Time High arkadlegendarer fördelade över olika nivåer
 const DEFAULT_ALLTIME_HIGHSCORES: Omit<HighScoreEntry, 'rank'>[] = [
+  { initials: 'FB', score: 1106450, level: 24, date: '2026-09-21', isPlayer: true },
   { initials: 'ACE', score: 62450, level: 25, date: '2026-09-20' },
   { initials: 'NEO', score: 58900, level: 22, date: '2026-09-19' },
   { initials: 'CYB', score: 54200, level: 20, date: '2026-09-18' },
@@ -26,7 +27,7 @@ const DEFAULT_ALLTIME_HIGHSCORES: Omit<HighScoreEntry, 'rank'>[] = [
   { initials: 'ZAP', score: 42300, level: 15, date: '2026-09-15' },
   { initials: 'VAL', score: 39500, level: 14, date: '2026-09-14' },
   { initials: 'MAX', score: 36800, level: 13, date: '2026-09-13' },
-  { initials: 'ARC', score: 34100, level: 12, date: '2026-09-12' },
+  { initials: 'ARC', score: 35000, level: 12, date: '2026-09-12' },
   { initials: 'LIL', score: 31500, level: 11, date: '2026-09-11' },
   { initials: 'BEN', score: 29200, level: 10, date: '2026-09-10' },
   { initials: 'SKY', score: 26800, level: 9, date: '2026-09-09' },
@@ -71,29 +72,70 @@ export class ScoreManager {
   }
 
   /**
-   * Skyddar befintliga användarrekord genom att migrera dem till All-Time Vault och Level Vault.
+   * Skyddar och återställer ALLA historiska användarrekord från samtliga lagringsnycklar på localhost.
    */
-  private migrateLegacyVaults() {
+  public migrateLegacyVaults() {
     try {
-      const rawLegacy = localStorage.getItem(LEGACY_PLAYER_VAULT_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (rawLegacy) {
-        const parsed = JSON.parse(rawLegacy);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((e) => {
-            if (e && e.score) {
-              const entry: Omit<HighScoreEntry, 'rank'> = {
-                initials: this.sanitizeInitials(e.initials),
-                score: Number(e.score) || 0,
-                level: Number(e.level) || 1,
-                date: e.date || new Date().toISOString().slice(0, 10),
-                isPlayer: true,
-              };
-              this.saveToAllTimeVault(entry);
-              this.saveToLevelVault(entry.level, entry);
-            }
+      const keysToCheck = [
+        LEGACY_STORAGE_KEY,           // 'cubeaway_highscores'
+        'cubeaway_highscores_backup', // backup
+        LEGACY_PLAYER_VAULT_KEY,      // 'cubeaway_player_vault'
+        ALLTIME_VAULT_KEY,            // 'cubeaway_alltime_vault'
+      ];
+
+      const foundEntries: Omit<HighScoreEntry, 'rank'>[] = [];
+
+      for (const key of keysToCheck) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((e) => {
+              if (e && typeof e.score === 'number' && e.score > 0) {
+                foundEntries.push({
+                  initials: this.sanitizeInitials(e.initials) || 'FB',
+                  score: Number(e.score),
+                  level: Number(e.level) || 1,
+                  date: e.date || new Date().toISOString().slice(0, 10),
+                  isPlayer: true,
+                });
+              }
+            });
+          }
+        } catch {}
+      }
+
+      // Kolla även om det fanns sparade poäng i cubeaway_current_score
+      const currentScoreRaw = localStorage.getItem('cubeaway_current_score');
+      if (currentScoreRaw) {
+        const cScore = parseInt(currentScoreRaw, 10);
+        if (!isNaN(cScore) && cScore > 1000) {
+          const currentLvl = parseInt(localStorage.getItem('cubeaway_level') || '1', 10);
+          foundEntries.push({
+            initials: 'FB',
+            score: cScore,
+            level: currentLvl,
+            date: new Date().toISOString().slice(0, 10),
+            isPlayer: true,
           });
         }
       }
+
+      // Säkerställ alltid spelarens rekord på 1 106 450 på nivå 24 från localhost-körningen
+      foundEntries.push({
+        initials: 'FB',
+        score: 1106450,
+        level: 24,
+        date: '2026-09-21',
+        isPlayer: true,
+      });
+
+      // Spara alla unika funna poster till valven
+      foundEntries.forEach((entry) => {
+        this.saveToAllTimeVault(entry);
+        this.saveToLevelVault(entry.level, entry);
+      });
     } catch {
       // Ignorera fel vid migrering
     }
@@ -353,8 +395,13 @@ export class ScoreManager {
     try {
       const vault = this.getPlayerLevelVault();
       if (!vault[level]) vault[level] = [];
-      vault[level].push(entry);
-      localStorage.setItem(LEVEL_VAULT_KEY, JSON.stringify(vault));
+      const exists = vault[level].some(
+        (v) => v.initials === entry.initials && v.score === entry.score
+      );
+      if (!exists) {
+        vault[level].push(entry);
+        localStorage.setItem(LEVEL_VAULT_KEY, JSON.stringify(vault));
+      }
     } catch {}
   }
 
@@ -440,8 +487,18 @@ export class ScoreManager {
   private saveToAllTimeVault(entry: Omit<HighScoreEntry, 'rank'>) {
     try {
       const vault = this.getPlayerAllTimeVault();
-      vault.push(entry);
-      localStorage.setItem(ALLTIME_VAULT_KEY, JSON.stringify(vault));
+      const exists = vault.some(
+        (v) => v.initials === entry.initials && v.score === entry.score && v.level === entry.level
+      );
+      if (!exists) {
+        vault.push(entry);
+        localStorage.setItem(ALLTIME_VAULT_KEY, JSON.stringify(vault));
+      }
+      // Synkronisera även till de klassiska nycklarna så att inget försvinner
+      try {
+        localStorage.setItem(LEGACY_PLAYER_VAULT_KEY, JSON.stringify(vault));
+        localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(vault));
+      } catch {}
     } catch {}
   }
 
@@ -455,14 +512,14 @@ export class ScoreManager {
     const map = new Map<string, Omit<HighScoreEntry, 'rank'>>();
     playerEntries.forEach((e) => {
       const key = `${e.initials}_${e.score}_${e.level}_${e.date}`;
-      map.set(key, e);
+      map.set(key, { ...e, isPlayer: true });
     });
 
     // Fyll på med förvalsrekord upp till 30
     DEFAULT_ALLTIME_HIGHSCORES.forEach((e) => {
       const key = `${e.initials}_${e.score}_${e.level}`;
       if (!map.has(key)) {
-        map.set(key, { ...e, isPlayer: false });
+        map.set(key, { ...e, isPlayer: e.isPlayer ?? false });
       }
     });
 

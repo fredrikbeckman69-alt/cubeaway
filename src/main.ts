@@ -51,7 +51,7 @@ class CubeAwayGame {
   private hintAnimId: number | null = null;
   private shakingArrow: { arrowId: string; startTime: number; faces: number[] } | null = null;
   private backgroundTexture: THREE.Texture | null = null;
-  private leaderboardTab: 'level' | 'alltime' = 'level';
+  private leaderboardTab: 'level' | 'alltime' = 'alltime';
   private leaderboardViewLevel: number = 1;
 
   // Konstanter
@@ -404,7 +404,9 @@ class CubeAwayGame {
   }
 
   private openLeaderboardModal() {
+    this.leaderboardTab = 'alltime';
     this.leaderboardViewLevel = this.currentLevel;
+    scoreManager.migrateLegacyVaults();
     this.renderLeaderboard();
     const modal = document.getElementById('highscore-modal');
     modal?.classList.remove('hidden');
@@ -1112,6 +1114,18 @@ class CubeAwayGame {
     document.getElementById('tab-alltime-lb')?.addEventListener('click', () => {
       this.leaderboardTab = 'alltime';
       this.renderLeaderboard();
+    });
+    document.getElementById('sync-highscores-btn')?.addEventListener('click', () => {
+      scoreManager.migrateLegacyVaults();
+      this.leaderboardTab = 'alltime';
+      this.renderLeaderboard();
+      const btn = document.getElementById('sync-highscores-btn');
+      if (btn) {
+        btn.textContent = '✓ Återställt!';
+        setTimeout(() => {
+          btn.textContent = '🔄 Återställ alla highscores';
+        }, 1500);
+      }
     });
     document.getElementById('lb-prev-level')?.addEventListener('click', () => {
       if (this.leaderboardViewLevel > 1) {
