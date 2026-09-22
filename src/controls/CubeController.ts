@@ -71,20 +71,113 @@ export class CubeController {
     this.gridSize = gridSize;
   }
 
+  private updatePointerPos(clientX: number, clientY: number) {
+    const rect = this.domElement.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      this.pointerPos.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointerPos.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    }
+  }
+
   private initEventListeners() {
-    // 1. Pekdon / Mus / Touch
+    // 1. WebKit Native Gestures för iPadOS & iOS Safari (hårdvaruaccelererad nyp-zoom)
+    let gestureStartDistance = 6.0;
+    const onGestureStart = (e: any) => {
+      e.preventDefault();
+      this.isAutoRotating = false;
+      this.hasDragged = true;
+      gestureStartDistance = this.targetDistance;
+    };
+    const onGestureChange = (e: any) => {
+      e.preventDefault();
+      this.hasDragged = true;
+      if (e.scale && e.scale > 0) {
+        this.targetDistance = THREE.MathUtils.clamp(
+          gestureStartDistance / e.scale,
+          this.minDistance,
+          this.maxDistance
+        );
+      }
+    };
+    const onGestureEnd = (e: any) => {
+      e.preventDefault();
+      this.hasDragged = true;
+    };
+
+    window.addEventListener('gesturestart', onGestureStart, { passive: false });
+    window.addEventListener('gesturechange', onGestureChange, { passive: false });
+    window.addEventListener('gestureend', onGestureEnd, { passive: false });
+
+    // 2. W3C Multi-Touch för alla pekskärmar (iPad, iPhone, Android, surfplattor)
+    let touchPinchStartDist = 0;
+    let touchPinchStartTargetDist = 6.0;
+
+    this.domElement.addEventListener(
+      'touchstart',
+      (e: TouchEvent) => {
+        if (e.touches.length >= 2) {
+          e.preventDefault();
+          this.isAutoRotating = false;
+          this.hasDragged = true;
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          touchPinchStartDist = Math.hypot(dx, dy);
+          touchPinchStartTargetDist = this.targetDistance;
+        }
+      },
+      { passive: false }
+    );
+
+    this.domElement.addEventListener(
+      'touchmove',
+      (e: TouchEvent) => {
+        if (e.touches.length >= 2) {
+          e.preventDefault();
+          this.hasDragged = true;
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const currentDist = Math.hypot(dx, dy);
+          if (touchPinchStartDist > 10 && currentDist > 10) {
+            const factor = touchPinchStartDist / currentDist;
+            this.targetDistance = THREE.MathUtils.clamp(
+              touchPinchStartTargetDist * factor,
+              this.minDistance,
+              this.maxDistance
+            );
+          }
+        }
+      },
+      { passive: false }
+    );
+
+    this.domElement.addEventListener(
+      'touchend',
+      (e: TouchEvent) => {
+        if (e.touches.length < 2 && touchPinchStartDist > 0) {
+          touchPinchStartDist = 0;
+          this.hasDragged = true;
+        }
+      },
+      { passive: false }
+    );
+
+    // 3. Pointer Events (Mus, penna samt touch-interaktion)
     this.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('pointermove', this.onPointerMove.bind(this));
     window.addEventListener('pointerup', this.onPointerUp.bind(this));
-    window.addEventListener('pointercancel', this.onPointerUp.bind(this));
+    window.addEventListener('pointercancel', this.onPointerCancel.bind(this));
 
-    // 2. Scrollhjul för zoom
-    this.domElement.addEventListener('wheel', (e) => {
-      this.isAutoRotating = false;
-      this.onWheel(e);
-    }, { passive: false });
+    // 4. Scrollhjul för mus
+    this.domElement.addEventListener(
+      'wheel',
+      (e) => {
+        this.isAutoRotating = false;
+        this.onWheel(e);
+      },
+      { passive: false }
+    );
 
-    // 3. Tangenter (Pil upp / Pil ner för zoom, vänster/höger för rotation)
+    // 5. Tangenter (Pil upp / Pil ner för zoom, vänster/höger för rotation)
     window.addEventListener('keydown', (e) => {
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
@@ -113,13 +206,18 @@ export class CubeController {
     this.isAutoRotating = false;
     this.onPointerDownCallback?.();
 
-    try {
-      this.domElement.setPointerCapture(e.pointerId);
-    } catch (_) {
-      // Ignorera om pointer capture inte stöds på enheten
+    // Endast för muspekare! På iOS Safari saboterar setPointerCapture multi-touch och touchgester
+    if (e.pointerType !== 'touch') {
+      try {
+        this.domElement.setPointerCapture(e.pointerId);
+      } catch (_) {}
     }
 
     this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
+
+    // Uppdatera pointerPos omedelbart vid nedtryck!
+    // På iPad skickas ofta inget 'pointermove' vid snabba stillastående tryck på skärmen
+    this.updatePointerPos(e.clientX, e.clientY);
 
     if (this.activePointers.size === 1) {
       this.isPointerDown = true;
@@ -131,7 +229,7 @@ export class CubeController {
       this.angularVelocityX = 0;
       this.angularVelocityY = 0;
     } else if (this.activePointers.size === 2) {
-      // Två fingrar: pinch-to-zoom på mobiler och surfplattor
+      // Två fingrar via Pointer Events (t.ex. Android Chrome / Pixel 10)
       this.hasDragged = true;
       const pts = Array.from(this.activePointers.values());
       this.initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -140,15 +238,13 @@ export class CubeController {
   }
 
   private onPointerMove(e: PointerEvent) {
-    const rect = this.domElement.getBoundingClientRect();
-    this.pointerPos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointerPos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    this.updatePointerPos(e.clientX, e.clientY);
 
     if (this.activePointers.has(e.pointerId)) {
       this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
     }
 
-    // 2-fingers pinch zoom
+    // 2-fingers pinch zoom via pointer events
     if (this.activePointers.size >= 2) {
       const pts = Array.from(this.activePointers.values());
       const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -167,8 +263,8 @@ export class CubeController {
       const dx = e.clientX - this.lastPointerX;
       const dy = e.clientY - this.lastPointerY;
 
-      // Använd något större tröskel (10px) för fingrar för att undvika falska drag vid klick på mobil
-      const threshold = e.pointerType === 'touch' ? 10 : 6;
+      // 18px tröskel för fingrar (touch slop) för att garantera att naturliga tryck aldrig tolkas som drag
+      const threshold = e.pointerType === 'touch' ? 18 : 6;
       const totalDist = Math.hypot(e.clientX - this.pointerStartX, e.clientY - this.pointerStartY);
       if (totalDist > threshold) {
         this.hasDragged = true;
@@ -184,7 +280,7 @@ export class CubeController {
         this.applyRotation(this.angularVelocityX, this.angularVelocityY);
       }
     } else {
-      // Hovring endast för muspekare (inte touch) för att spara prestanda och slippa ghost hover
+      // Hovring endast för muspekare (inte touch) för att spara prestanda och slippa spökhovring
       if (e.pointerType !== 'touch') {
         this.checkHover();
       }
@@ -192,9 +288,11 @@ export class CubeController {
   }
 
   private onPointerUp(e: PointerEvent) {
-    try {
-      this.domElement.releasePointerCapture(e.pointerId);
-    } catch (_) {}
+    if (e.pointerType !== 'touch') {
+      try {
+        this.domElement.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
 
     this.activePointers.delete(e.pointerId);
 
@@ -216,17 +314,32 @@ export class CubeController {
       this.angularVelocityY = 0;
       this.isAutoRotating = false;
 
-      if (!this.hasDragged) {
-        // Rent klick! Utför raycast
-        const hit = this.performRaycast();
+      const clickX = e.clientX || this.pointerStartX;
+      const clickY = e.clientY || this.pointerStartY;
+      const totalDist = Math.hypot(clickX - this.pointerStartX, clickY - this.pointerStartY);
+      const threshold = e.pointerType === 'touch' ? 18 : 6;
+
+      if (!this.hasDragged && totalDist <= threshold) {
+        // Rent klick! Utför raycast med exakt position där användaren tryckte
+        const hit = this.performRaycast(clickX, clickY);
         if (hit && this.onClickCell) {
           this.onClickCell({
             ...hit,
-            clientX: e.clientX,
-            clientY: e.clientY,
+            clientX: clickX,
+            clientY: clickY,
           });
         }
       }
+    }
+  }
+
+  private onPointerCancel(e: PointerEvent) {
+    this.activePointers.delete(e.pointerId);
+    if (this.activePointers.size === 0) {
+      this.isPointerDown = false;
+      this.hasDragged = false;
+      this.angularVelocityX = 0;
+      this.angularVelocityY = 0;
     }
   }
 
@@ -273,8 +386,12 @@ export class CubeController {
     }
   }
 
-  private performRaycast(): HitResult | null {
+  public performRaycast(clientX?: number, clientY?: number): HitResult | null {
     if (!this.cubeMesh) return null;
+
+    if (clientX !== undefined && clientY !== undefined) {
+      this.updatePointerPos(clientX, clientY);
+    }
 
     this.raycaster.setFromCamera(this.pointerPos, this.camera);
     const intersects = this.raycaster.intersectObject(this.cubeMesh);
