@@ -100,6 +100,7 @@ html, body {
   top: max(12px, env(safe-area-inset-top, 12px));
   left: max(12px, env(safe-area-inset-left, 12px));
   right: max(12px, env(safe-area-inset-right, 12px));
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -113,6 +114,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.hud-right {
+  flex-shrink: 0;
 }
 
 /* Logotyp */
@@ -1289,16 +1294,17 @@ html, body {
    RESPONSIV DESIGN FÖR SURFPLATTOR (IPAD), MOBILER OCH TOUCH
    ========================================================================== */
 
-/* Surfplattor / iPad i stående & liggande läge (upp till 1024px) */
-@media (max-width: 1024px) {
+/* Surfplattor / iPad (liggande & stående läge) och bärbara skärmar (upp till 1450px) */
+@media (max-width: 1450px) {
   .hud-top {
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-areas:
       "left right"
       "center center";
-    gap: 10px;
+    gap: 8px 12px;
     align-items: center;
+    box-sizing: border-box;
   }
   .hud-left {
     grid-area: left;
@@ -1306,25 +1312,29 @@ html, body {
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+    min-width: 0;
   }
   .hud-right {
     grid-area: right;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     justify-content: flex-end;
     align-items: center;
+    flex-shrink: 0;
   }
   .hud-center {
     grid-area: center;
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 12px;
+    min-width: 0;
   }
   .level-badge {
     width: auto;
     max-width: 280px;
-    min-width: 220px;
+    min-width: 200px;
   }
   .mode-selector {
     gap: 2px;
@@ -1334,8 +1344,21 @@ html, body {
     font-size: 11.5px;
   }
   .score-container, .arrow-counter-container {
-    min-width: 140px;
+    min-width: 135px;
     padding: 6px 16px;
+  }
+}
+
+/* Smalare surfplattor och skärmar (upp till 1080px): komprimerade knappar */
+@media (max-width: 1080px) {
+  .icon-btn .btn-label {
+    display: none;
+  }
+  .icon-btn {
+    padding: 7px 10px;
+    min-width: 38px;
+    min-height: 38px;
+    justify-content: center;
   }
 }
 
