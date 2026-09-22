@@ -65,12 +65,48 @@ class CubeAwayGame {
 
     // Ladda den valda rymdbakgrunden (nebulosa med stjärnor och galaxer)
     const textureLoader = new THREE.TextureLoader();
-    textureLoader.load('/background_hd.jpg', (bgTex) => {
-      bgTex.colorSpace = THREE.SRGBColorSpace;
-      this.backgroundTexture = bgTex;
-      this.scene.background = bgTex;
-      this.updateBackgroundCover();
-    });
+    const getAbsoluteAssetUrl = (fileName: string) => {
+      const origin = window.location.origin;
+      let pathname = window.location.pathname;
+      if (!pathname.endsWith('/')) {
+        pathname += '/';
+      }
+      return `${origin}${pathname}${fileName}`;
+    };
+
+    const candidates = [
+      getAbsoluteAssetUrl('background_hd.jpg'),
+      getAbsoluteAssetUrl('background.png'),
+      getAbsoluteAssetUrl('background.jpg'),
+      `${import.meta.env.BASE_URL || './'}background_hd.jpg`,
+      './background_hd.jpg',
+      'background_hd.jpg',
+      '/background_hd.jpg',
+    ];
+
+    const tryLoadTexture = (index: number) => {
+      if (index >= candidates.length) {
+        console.warn('Could not load space background from any candidate URL.');
+        return;
+      }
+      const url = candidates[index];
+      textureLoader.load(
+        url,
+        (bgTex) => {
+          bgTex.colorSpace = THREE.SRGBColorSpace;
+          this.backgroundTexture = bgTex;
+          this.scene.background = bgTex;
+          this.updateBackgroundCover();
+        },
+        undefined,
+        (err) => {
+          console.warn(`Failed loading background from ${url}, trying fallback...`, err);
+          tryLoadTexture(index + 1);
+        }
+      );
+    };
+
+    tryLoadTexture(0);
 
     // 2. Kamera
     const aspect = window.innerWidth / window.innerHeight;
