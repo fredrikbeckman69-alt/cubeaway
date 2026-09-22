@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CubeAway 3D - Pusselspel</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 3D Canvas Behållare -->
+      <canvas id="webgl-canvas"></canvas>
+
+      <!-- Övre HUD -->
+      <header class="hud-top">
+        <div class="hud-left">
+          <div class="logo">
+            <span class="logo-icon">🎲</span>
+            <span class="logo-text">CubeAway</span>
+          </div>
+          <div class="level-badge" id="level-display" title="Klicka för att välja nivå">
+            <button class="nav-arrow-btn" id="prev-level-btn" title="Föregående nivå">‹</button>
+            <div class="level-info-wrap">
+              <span id="level-text">Nivå 1 / 1000</span>
+              <span id="level-stars" class="level-stars" title="Stjärnor på denna nivå">☆☆☆</span>
+            </div>
+            <button class="nav-arrow-btn" id="next-level-btn" title="Nästa nivå">›</button>
+          </div>
+          <div class="mode-selector" id="mode-selector">
+            <button class="mode-btn active" id="mode-btn-classic" data-mode="classic" title="Klassiskt läge">Klassisk</button>
+            <button class="mode-btn" id="mode-btn-time" data-mode="time_attack" title="Tidspress: 60 sekunder + 2s per pil">⏱️ Tidspress</button>
+            <button class="mode-btn" id="mode-btn-zen" data-mode="zen" title="Zen: Avkopplande pussel utan stress">☯️ Zen</button>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="time-attack-container hidden" id="time-attack-container">
+            <div class="counter-label">Tid kvar</div>
+            <div class="timer-value" id="time-attack-timer">60s</div>
+          </div>
+
+          <div class="arrow-counter-container">
+            <div class="counter-label">Återstående pilar</div>
+            <div class="counter-value" id="remaining-arrows">0</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="score-container">
+            <div class="counter-label">Poäng</div>
+            <div class="score-value" id="current-score">0</div>
+            <div class="combo-badge hidden" id="combo-badge">
+              <span id="combo-text">COMBO x2 🔥</span>
+              <div class="combo-bar-bg">
+                <div class="combo-bar-fill" id="combo-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <button class="icon-btn highscore-btn" id="highscore-btn" title="Topplista & Highscore">
+            <span class="btn-icon">🏆</span>
+            <span class="btn-label">Topplista</span>
+          </button>
+          <button class="icon-btn" id="hint-btn" title="Få ett tips">
+            <span class="btn-icon">💡</span>
+            <span class="btn-label">Tips</span>
+          </button>
+          <button class="icon-btn" id="restart-btn" title="Starta om nivån">
+            <span class="btn-icon">🔄</span>
+          </button>
+          <button class="icon-btn" id="music-btn" title="Bakgrundsmusik av/på">
+            <span class="btn-icon" id="music-icon">🎵</span>
+          </button>
+          <button class="icon-btn" id="sound-btn" title="Ljudeffekter av/på">
+            <span class="btn-icon" id="sound-icon">🔊</span>
+          </button>
+          <button class="icon-btn" id="levels-modal-btn" title="Välj nivå (1-1000)">
+            <span class="btn-icon">📑</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Svävande poängeffekter -->
+      <div id="score-toasts" class="score-toasts-container"></div>
+
+      <!-- Zoom Kontroller Snabbknappar -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in-btn" title="Zooma in (eller Pil Upp / Scrollhjul)">+</button>
+        <button class="zoom-btn" id="zoom-out-btn" title="Zooma ut (eller Pil Ner / Scrollhjul)">−</button>
+      </div>
+
+      <!-- Nedre instruktioner -->
+      <footer class="hud-bottom">
+        <div class="instruction-pill">
+          <span>🖱️ <b>Dra</b> för att rotera kuben</span>
+          <span class="divider">•</span>
+          <span>🔍 <b>Scrolla</b> eller <b>Piltangenter</b> (Upp/Ner) för att zooma</span>
+          <span class="divider">•</span>
+          <span>🎯 <b>Klicka</b> på pilar för att skjuta iväg dem</span>
+        </div>
+      </footer>
+
+      <!-- Nivåväljare Modal -->
+      <div class="modal-backdrop hidden" id="level-modal">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h2>Välj Nivå (1 – 1000)</h2>
+            <button class="close-btn" id="close-level-modal">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="level-jump-row">
+              <label for="level-input">Hoppa direkt till nivå:</label>
+              <div class="input-group">
+                <input type="number" id="level-input" min="1" max="1000" value="1" />
+                <button class="btn btn-primary" id="jump-level-btn">Gå till nivå</button>
+              </div>
+            </div>
+            <div class="level-quick-links">
+              <span class="quick-title">Snabbval:</span>
+              <div class="quick-btn-grid">
+                <button class="quick-btn" data-level="1">1 (Start 20x20)</button>
+                <button class="quick-btn" data-level="25">25 (Klassisk 20x20)</button>
+                <button class="quick-btn" data-level="50">50 (20x20 Labyrint)</button>
+                <button class="quick-btn" data-level="100">100 (20x20 Mästare)</button>
+                <button class="quick-btn" data-level="250">250 (22x22 Utmaning)</button>
+                <button class="quick-btn" data-level="500">500 (22x22 Expert)</button>
+                <button class="quick-btn" data-level="750">750 (24x24 Super-labyrint)</button>
+                <button class="quick-btn" data-level="1000">1000 (24x24 Grandmaster)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Highscore / Topplista Modal -->
+      <div class="modal-backdrop hidden" id="highscore-modal">
+        <div class="modal-card leaderboard-card">
+          <div class="modal-header">
+            <h2>🏆 Topplista & Rekord</h2>
+            <button class="close-btn" id="close-highscore-modal">✕</button>
+          </div>
+          <div class="modal-body">
+            <!-- Flikar: Nivå Topp 10 vs All-Time High Topp 30 -->
+            <div class="lb-tabs-header">
+              <button class="lb-tab-btn active" id="tab-level-lb">🎯 Nivå <span id="lb-selected-level-num">1</span> (Topp 10)</button>
+              <button class="lb-tab-btn" id="tab-alltime-lb">👑 All-Time High (Topp 30)</button>
+            </div>
+
+            <!-- Nivåväljare (visas när Nivå-fliken är aktiv) -->
+            <div class="lb-level-switcher" id="lb-level-switcher">
+              <button class="btn btn-secondary btn-sm" id="lb-prev-level" title="Föregående nivå">‹</button>
+              <span class="lb-level-title" id="lb-level-title">Nivå 1</span>
+              <button class="btn btn-secondary btn-sm" id="lb-next-level" title="Nästa nivå">›</button>
+            </div>
+
+            <div class="leaderboard-table-container">
+              <table class="leaderboard-table" id="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th class="col-rank">Plats</th>
+                    <th class="col-player">Spelare</th>
+                    <th class="col-score">Poäng</th>
+                    <th id="lb-th-level" class="col-level hidden">Nivå</th>
+                    <th class="col-date">Datum</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                  <!-- Raderas/fylls via script -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="leaderboard-register-row" id="leaderboard-direct-entry">
+              <div class="direct-entry-prompt">Registrera initialer för nivåpoäng (<span id="lb-summary-score">0</span>p på Nivå <span id="lb-direct-current-level">1</span>):</div>
+              <div class="arcade-initials-wrapper">
+                <input
+                  type="text"
+                  id="direct-initials-input"
+                  class="arcade-input"
+                  maxlength="3"
+                  placeholder="AAA"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                />
+                <button class="btn btn-primary btn-sm" id="direct-save-score-btn">Spara Rekord</button>
+              </div>
+            </div>
+
+            <div class="leaderboard-footer">
+              <button class="btn btn-primary" id="close-highscore-btn" style="width: 100%;">Stäng</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vinst Modal -->
+      <div class="modal-backdrop hidden" id="win-modal">
+        <div class="modal-card win-card">
+          <button class="modal-corner-close-btn" id="close-win-modal-btn" title="Stäng fönster (Esc)">✕</button>
+          <div class="win-sparkle">✨🏆✨</div>
+          <h2 class="win-title">Kuben är rensad!</h2>
+
+          <!-- Stjärnutdelning i vinstfönstret -->
+          <div class="win-stars-container" id="win-stars-container">
+            <span class="win-star" id="win-star-1">★</span>
+            <span class="win-star" id="win-star-2">★</span>
+            <span class="win-star" id="win-star-3">★</span>
+          </div>
+
+          <p class="win-desc" id="win-desc">Fantastiskt bra gjort! Alla pilar har skjutits iväg.</p>
+
+          <!-- Poängsummering i vinstfönstret -->
+          <div class="win-score-box">
+            <div class="win-score-row">
+              <span class="win-score-label">Nivåbonus:</span>
+              <span class="win-score-val" id="win-level-bonus">+0</span>
+            </div>
+            <div class="win-score-row total">
+              <span class="win-score-label">Nivåpoäng:</span>
+              <span class="win-score-val highlight" id="win-total-score">0</span>
+            </div>
+          </div>
+
+          <!-- Highscore registrering med max 3 bokstäver -->
+          <div class="win-highscore-section" id="win-highscore-section">
+            <div class="highscore-banner" id="win-highscore-banner">🌟 NYTT HIGHSCORE! 🌟</div>
+            <p class="highscore-prompt">Skriv in dina initialer (max 3 bokstäver):</p>
+            <div class="arcade-initials-wrapper">
+              <input
+                type="text"
+                id="win-initials-input"
+                class="arcade-input"
+                maxlength="3"
+                placeholder="AAA"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="characters"
+                spellcheck="false"
+              />
+              <button class="btn btn-primary" id="win-save-score-btn">Spara</button>
+            </div>
+            <div class="highscore-saved-msg hidden" id="win-score-saved-msg">✓ Sparat på plats <span id="win-saved-rank">#1</span>!</div>
+          </div>
+
+          <div class="win-actions">
+            <button class="btn btn-primary btn-large" id="next-level-win-btn">Nästa Nivå ›</button>
+            <div class="win-secondary-btns">
+              <button class="btn btn-secondary" id="win-leaderboard-btn">Visa Topplista 🏆</button>
+              <button class="btn btn-secondary" id="replay-level-win-btn">Spela igen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tidspress Slut / Game Over Modal -->
+      <div class="modal-backdrop hidden" id="time-over-modal">
+        <div class="modal-card win-card">
+          <button class="modal-corner-close-btn" id="close-time-over-modal-btn" title="Stäng fönster (Esc)">✕</button>
+          <div class="win-sparkle">⏱️⌛⏱️</div>
+          <h2 class="win-title">Tiden är slut!</h2>
+          <p class="win-desc">Grymt kämpat! Tiden rann ut i Tidspress.</p>
+          <div class="win-score-box">
+            <div class="win-score-row total">
+              <span class="win-score-label">Slutpoäng:</span>
+              <span class="win-score-val highlight" id="time-over-total-score">0</span>
+            </div>
+          </div>
+          <div class="win-actions">
+            <button class="btn btn-primary btn-large" id="retry-time-attack-btn">Spela Tidspress Igen ⏱️</button>
+            <div class="win-secondary-btns">
+              <button class="btn btn-secondary" id="time-over-leaderboard-btn">Visa Topplista 🏆</button>
+              <button class="btn btn-secondary" id="exit-time-attack-btn">Tillbaka till Klassisk</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
