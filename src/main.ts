@@ -108,9 +108,13 @@ class CubeAwayGame {
 
     tryLoadTexture(0);
 
-    // 2. Kamera
+    // 2. Kamera med responsiv synfälts-beräkning för porträtt- och landskapslägen
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(42, aspect, 0.1, 100);
+    const baseFov = 42;
+    const initialFov = aspect < 1.0
+      ? (2 * Math.atan(Math.tan((baseFov * Math.PI) / 360) / aspect) * 180) / Math.PI
+      : baseFov;
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 100);
     this.camera.position.set(0, 0, 6.0);
 
     // 3. WebGL Renderer
@@ -176,8 +180,38 @@ class CubeAwayGame {
       this.cancelRotateAnimation();
     };
 
-    // 8. Event listeners
+    // 8. Event listeners (orientering, visualViewport, WebGL-återhämtning & touch audio unlock)
     window.addEventListener('resize', this.onResize.bind(this));
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => this.onResize(), 150);
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', this.onResize.bind(this));
+    }
+
+    // WebGL-återhämtning för mobila webbläsare vid bakgrundsväxling
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('WebGL Context Lost.');
+    }, false);
+
+    canvas.addEventListener('webglcontextrestored', () => {
+      console.log('WebGL Context Restored.');
+      this.onResize();
+      for (let f = 0; f < 6; f++) {
+        this.renderFaceState(f);
+      }
+    }, false);
+
+    // Lås upp Web Audio vid första pekskärmsberöring (viktigt för iOS Safari och iPadOS)
+    const unlockAudio = () => {
+      sound.initCtx();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+
     this.bindUI();
 
     // 9. Ladda nivå
@@ -1185,7 +1219,21 @@ class CubeAwayGame {
   private onResize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
-    this.camera.aspect = width / height;
+    const aspect = width / height;
+    this.camera.aspect = aspect;
+
+    // Dynamisk FOV-anpassning för mobiler och surfplattor i stående läge:
+    // PerspectiveCamera har vertikal FOV (42°). Vid aspect < 1.0 krymper horisontell synvinkel,
+    // vilket gör att kuben ser överdrivet inzoomad ut och klipps av i kanterna.
+    // Vi kompenserar så att hela kuben alltid ryms med god marginal på alla skärmar:
+    const baseFov = 42;
+    if (aspect < 1.0) {
+      const targetHalfWidth = Math.tan((baseFov * Math.PI) / 360);
+      this.camera.fov = (2 * Math.atan(targetHalfWidth / aspect) * 180) / Math.PI;
+    } else {
+      this.camera.fov = baseFov;
+    }
+
     this.camera.updateProjectionMatrix();
     this.webglRenderer.setSize(width, height);
     this.composer.setSize(width, height);

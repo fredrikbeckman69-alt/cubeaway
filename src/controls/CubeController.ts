@@ -20,13 +20,17 @@ export class CubeController {
   private maxDistance: number = 14.0;
   public isAutoRotating: boolean = true;
 
-  // Rotation (Arkboll / fri quaternion-rotation)
+  // Rotation (Arkboll / fri quaternion-rotation) & Multi-touch / Pinch-zoom
   private isPointerDown: boolean = false;
   private hasDragged: boolean = false;
   private pointerStartX: number = 0;
   private pointerStartY: number = 0;
   private lastPointerX: number = 0;
   private lastPointerY: number = 0;
+
+  private activePointers: Map<number, { x: number; y: number; pointerType: string }> = new Map();
+  private initialPinchDistance: number = 0;
+  private initialTargetDistance: number = 6.0;
 
   private angularVelocityX: number = 0;
   private angularVelocityY: number = 0;
@@ -68,7 +72,7 @@ export class CubeController {
   }
 
   private initEventListeners() {
-    // 1. Pekdon / Mus
+    // 1. Pekdon / Mus / Touch
     this.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('pointermove', this.onPointerMove.bind(this));
     window.addEventListener('pointerup', this.onPointerUp.bind(this));
@@ -98,6 +102,8 @@ export class CubeController {
 
     window.addEventListener('blur', () => {
       this.keysDown.clear();
+      this.activePointers.clear();
+      this.isPointerDown = false;
     });
   }
 
@@ -106,14 +112,31 @@ export class CubeController {
   private onPointerDown(e: PointerEvent) {
     this.isAutoRotating = false;
     this.onPointerDownCallback?.();
-    this.isPointerDown = true;
-    this.hasDragged = false;
-    this.pointerStartX = e.clientX;
-    this.pointerStartY = e.clientY;
-    this.lastPointerX = e.clientX;
-    this.lastPointerY = e.clientY;
-    this.angularVelocityX = 0;
-    this.angularVelocityY = 0;
+
+    try {
+      this.domElement.setPointerCapture(e.pointerId);
+    } catch (_) {
+      // Ignorera om pointer capture inte stöds på enheten
+    }
+
+    this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
+
+    if (this.activePointers.size === 1) {
+      this.isPointerDown = true;
+      this.hasDragged = false;
+      this.pointerStartX = e.clientX;
+      this.pointerStartY = e.clientY;
+      this.lastPointerX = e.clientX;
+      this.lastPointerY = e.clientY;
+      this.angularVelocityX = 0;
+      this.angularVelocityY = 0;
+    } else if (this.activePointers.size === 2) {
+      // Två fingrar: pinch-to-zoom på mobiler och surfplattor
+      this.hasDragged = true;
+      const pts = Array.from(this.activePointers.values());
+      this.initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      this.initialTargetDistance = this.targetDistance;
+    }
   }
 
   private onPointerMove(e: PointerEvent) {
@@ -121,12 +144,33 @@ export class CubeController {
     this.pointerPos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointerPos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-    if (this.isPointerDown) {
+    if (this.activePointers.has(e.pointerId)) {
+      this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
+    }
+
+    // 2-fingers pinch zoom
+    if (this.activePointers.size >= 2) {
+      const pts = Array.from(this.activePointers.values());
+      const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (this.initialPinchDistance > 10 && currentDist > 10) {
+        const factor = this.initialPinchDistance / currentDist;
+        this.targetDistance = THREE.MathUtils.clamp(
+          this.initialTargetDistance * factor,
+          this.minDistance,
+          this.maxDistance
+        );
+      }
+      return;
+    }
+
+    if (this.isPointerDown && this.activePointers.size === 1) {
       const dx = e.clientX - this.lastPointerX;
       const dy = e.clientY - this.lastPointerY;
 
+      // Använd något större tröskel (10px) för fingrar för att undvika falska drag vid klick på mobil
+      const threshold = e.pointerType === 'touch' ? 10 : 6;
       const totalDist = Math.hypot(e.clientX - this.pointerStartX, e.clientY - this.pointerStartY);
-      if (totalDist > 6) {
+      if (totalDist > threshold) {
         this.hasDragged = true;
       }
 
@@ -134,33 +178,54 @@ export class CubeController {
       this.lastPointerY = e.clientY;
 
       if (this.hasDragged) {
-        // Rotera kuben baserat på musrörelse
+        // Rotera kuben baserat på pekarrörelse
         this.angularVelocityY = dx * this.rotationSpeed;
         this.angularVelocityX = dy * this.rotationSpeed;
         this.applyRotation(this.angularVelocityX, this.angularVelocityY);
       }
     } else {
-      // Hovring
-      this.checkHover();
+      // Hovring endast för muspekare (inte touch) för att spara prestanda och slippa ghost hover
+      if (e.pointerType !== 'touch') {
+        this.checkHover();
+      }
     }
   }
 
   private onPointerUp(e: PointerEvent) {
-    if (!this.isPointerDown) return;
-    this.isPointerDown = false;
-    this.angularVelocityX = 0;
-    this.angularVelocityY = 0;
-    this.isAutoRotating = false;
+    try {
+      this.domElement.releasePointerCapture(e.pointerId);
+    } catch (_) {}
 
-    if (!this.hasDragged) {
-      // Rent klick! Utför raycast
-      const hit = this.performRaycast();
-      if (hit && this.onClickCell) {
-        this.onClickCell({
-          ...hit,
-          clientX: e.clientX,
-          clientY: e.clientY,
-        });
+    this.activePointers.delete(e.pointerId);
+
+    if (this.activePointers.size === 1) {
+      // Ett finger kvar efter tvåfingerzoom - uppdatera koordinater för att undvika ryck
+      const remaining = Array.from(this.activePointers.values())[0];
+      this.lastPointerX = remaining.x;
+      this.lastPointerY = remaining.y;
+      this.pointerStartX = remaining.x;
+      this.pointerStartY = remaining.y;
+      this.hasDragged = true;
+      return;
+    }
+
+    if (this.activePointers.size === 0) {
+      if (!this.isPointerDown) return;
+      this.isPointerDown = false;
+      this.angularVelocityX = 0;
+      this.angularVelocityY = 0;
+      this.isAutoRotating = false;
+
+      if (!this.hasDragged) {
+        // Rent klick! Utför raycast
+        const hit = this.performRaycast();
+        if (hit && this.onClickCell) {
+          this.onClickCell({
+            ...hit,
+            clientX: e.clientX,
+            clientY: e.clientY,
+          });
+        }
       }
     }
   }
