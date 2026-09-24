@@ -11,7 +11,7 @@ class SoundManager {
   private ambientFilter: BiquadFilterNode | null = null;
   private ambientGain: GainNode | null = null;
   private isAmbientPlaying: boolean = false;
-  private isMusicMuted: boolean = false;
+  private isMusicMuted: boolean = true;
 
   constructor() {
     // AudioContext skapas vid första användarinteraktion
@@ -25,9 +25,7 @@ class SoundManager {
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
-    if (!this.isAmbientPlaying) {
-      this.startAmbientSoundscape();
-    }
+    // Bakgrundsmusik borttagen enligt användarens önskemål för test
   }
 
   public setMuted(muted: boolean) {
@@ -270,38 +268,8 @@ class SoundManager {
   }
 
   private startAmbientSoundscape() {
-    if (!this.ctx || this.isAmbientPlaying) return;
-    try {
-      if (!this.ambientBuffer) {
-        this.ambientBuffer = this.generateAmbientBuffer(this.ctx);
-      }
-      const ctx = this.ctx;
-      const t = ctx.currentTime;
-
-      this.ambientSource = ctx.createBufferSource();
-      this.ambientSource.buffer = this.ambientBuffer;
-      this.ambientSource.loop = true;
-
-      // Hårdvaru-lågpassfilter i Web Audio med 650 Hz cutoff för maximal trävärme och noll skärpa
-      this.ambientFilter = ctx.createBiquadFilter();
-      this.ambientFilter.type = 'lowpass';
-      this.ambientFilter.frequency.setValueAtTime(650, t);
-      this.ambientFilter.Q.setValueAtTime(0.707, t);
-
-      this.ambientGain = ctx.createGain();
-      const targetGain = (this.isMuted || this.isMusicMuted) ? 0.00001 : 0.09;
-      this.ambientGain.gain.setValueAtTime(0.0001, t);
-      this.ambientGain.gain.exponentialRampToValueAtTime(targetGain, t + 2.5);
-
-      this.ambientSource.connect(this.ambientFilter);
-      this.ambientFilter.connect(this.ambientGain);
-      this.ambientGain.connect(ctx.destination);
-
-      this.ambientSource.start(t);
-      this.isAmbientPlaying = true;
-    } catch {
-      // Ignorera fel vid tidig autoplay
-    }
+    // Bakgrundsmusik borttagen enligt användarens önskemål för test
+    return;
   }
 
   // Bakåtkompatibla alias

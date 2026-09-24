@@ -376,7 +376,9 @@ html, body {
 }
 
 #restart-btn,
-#music-btn {
+#music-btn,
+#sound-btn,
+#levels-modal-btn {
   width: 42px;
   min-width: 42px;
   max-width: 42px;
