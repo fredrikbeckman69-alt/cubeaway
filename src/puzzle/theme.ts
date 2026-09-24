@@ -23,6 +23,7 @@ export interface LevelTheme {
 
   // UI-accenter
   accentGradient: string;
+  isWhiteTheme?: boolean;
 }
 
 interface BaseThemeDef {
@@ -40,6 +41,7 @@ interface BaseThemeDef {
   dirLight2Hex: string;
   shadowRGB: [number, number, number];
   accentGradient: string;
+  isWhiteTheme?: boolean;
 }
 
 /**
@@ -98,7 +100,25 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [255, 170, 0],
     accentGradient: 'linear-gradient(90deg, #ea580c, #ffd000)',
   },
-  // 4. Nivå 4: Smaragdenergi & Neon Mint (Mörk skogs-obsidian med elektrisk mint)
+  // 4. Nivå 4: Stjärnglans & Diamantvit (Vita Pilar ⚪) - Mörk obsidian med kristallvita pilar
+  {
+    name: 'Stjärnglans & Diamantvit (Vita Pilar ⚪)',
+    cubeCore: '#0c0d18',
+    cubeMid: '#070810',
+    cubeEdge: '#020306',
+    cubeRim: '#ffffff',
+    arrowBase: '#ffffff',
+    arrowGlow: '#e0f2fe',
+    arrowCore: '#ffffff',
+    flyingArrowHex: '#ffffff',
+    pointLightHex: '#ffffff',
+    dirLight1Hex: '#f8fafc',
+    dirLight2Hex: '#1e293b',
+    shadowRGB: [255, 255, 255],
+    accentGradient: 'linear-gradient(90deg, #94a3b8, #ffffff)',
+    isWhiteTheme: true,
+  },
+  // 5. Nivå 5: Smaragdenergi & Neon Mint (Mörk skogs-obsidian med elektrisk mint)
   {
     name: 'Smaragdenergi & Neon Mint',
     cubeCore: '#021e13',
@@ -115,7 +135,7 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [0, 255, 136],
     accentGradient: 'linear-gradient(90deg, #059669, #00ff88)',
   },
-  // 5. Nivå 5: Kryo Safir & Neon Korall (Mörk djupblå med het korallorange)
+  // 6. Nivå 6: Kryo Safir & Neon Korall (Mörk djupblå med het korallorange)
   {
     name: 'Kryo Safir & Neon Korall',
     cubeCore: '#031726',
@@ -132,7 +152,7 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [255, 77, 0],
     accentGradient: 'linear-gradient(90deg, #0284c7, #ff4d00)',
   },
-  // 6. Nivå 6: Plasma Nebula & Neon Pink (Mörk nebula-lila med laserrosa)
+  // 7. Nivå 7: Plasma Nebula & Neon Pink (Mörk nebula-lila med laserrosa)
   {
     name: 'Plasma Nebula & Neon Pink',
     cubeCore: '#1b0529',
@@ -149,7 +169,25 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [255, 0, 187],
     accentGradient: 'linear-gradient(90deg, #9333ea, #ff00bb)',
   },
-  // 7. Nivå 7: Vulkan Rubin & Elektrisk Turkos (Mörk rubin-obsidian med is-turkos)
+  // 8. Nivå 8: Kosmisk Frost & Vit Laser (Vita Pilar ⚪) - Midnattsblå obsidian med strålande vita laserpilar
+  {
+    name: 'Kosmisk Frost & Vit Laser (Vita Pilar ⚪)',
+    cubeCore: '#050d1c',
+    cubeMid: '#020610',
+    cubeEdge: '#010206',
+    cubeRim: '#ffffff',
+    arrowBase: '#ffffff',
+    arrowGlow: '#bae6fd',
+    arrowCore: '#ffffff',
+    flyingArrowHex: '#ffffff',
+    pointLightHex: '#ffffff',
+    dirLight1Hex: '#e0f2fe',
+    dirLight2Hex: '#0c4a6e',
+    shadowRGB: [255, 255, 255],
+    accentGradient: 'linear-gradient(90deg, #38bdf8, #ffffff)',
+    isWhiteTheme: true,
+  },
+  // 9. Nivå 9: Vulkan Rubin & Elektrisk Turkos (Mörk rubin-obsidian med is-turkos)
   {
     name: 'Vulkan Rubin & Elektrisk Turkos',
     cubeCore: '#28040b',
@@ -166,7 +204,7 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [0, 255, 238],
     accentGradient: 'linear-gradient(90deg, #e11d48, #00ffee)',
   },
-  // 8. Nivå 8: Radioaktiv Lime & Ultra Violet (Mörk giftbasalt med neonlila)
+  // 10. Nivå 10: Radioaktiv Lime & Ultra Violet (Mörk giftbasalt med neonlila)
   {
     name: 'Radioaktiv Lime & Ultra Violet',
     cubeCore: '#131f03',
@@ -183,7 +221,7 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [208, 0, 255],
     accentGradient: 'linear-gradient(90deg, #65a30d, #d000ff)',
   },
-  // 9. Nivå 9: Aqua Lagoon & Neon Orange (Mörk djuphavsnatt med solnedgångs-orange)
+  // 11. Nivå 11: Aqua Lagoon & Neon Orange (Mörk djuphavsnatt med solnedgångs-orange)
   {
     name: 'Aqua Lagoon & Neon Orange',
     cubeCore: '#021e1c',
@@ -200,7 +238,25 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [255, 102, 0],
     accentGradient: 'linear-gradient(90deg, #0d9488, #ff6600)',
   },
-  // 10. Nivå 10: Obsidian Guld & Bärnstenslåga (Kolsvart obsidian med gnistrande guld)
+  // 12. Nivå 12: Obsidian & Vit Kristall (Vita Pilar ⚪) - Sotsvart obsidian med rent snövita pilar
+  {
+    name: 'Obsidian & Vit Kristall (Vita Pilar ⚪)',
+    cubeCore: '#101014',
+    cubeMid: '#08080a',
+    cubeEdge: '#020203',
+    cubeRim: '#ffffff',
+    arrowBase: '#ffffff',
+    arrowGlow: '#f1f5f9',
+    arrowCore: '#ffffff',
+    flyingArrowHex: '#ffffff',
+    pointLightHex: '#ffffff',
+    dirLight1Hex: '#ffffff',
+    dirLight2Hex: '#334155',
+    shadowRGB: [255, 255, 255],
+    accentGradient: 'linear-gradient(90deg, #cbd5e1, #ffffff)',
+    isWhiteTheme: true,
+  },
+  // 13. Nivå 13: Obsidian Guld & Bärnstenslåga (Kolsvart obsidian med gnistrande guld)
   {
     name: 'Obsidian Guld & Bärnstenslåga',
     cubeCore: '#171406',
@@ -217,7 +273,7 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [255, 204, 0],
     accentGradient: 'linear-gradient(90deg, #b45309, #ffcc00)',
   },
-  // 11. Nivå 11: Elektro-Blå & Neon Lime (Mörk rymdkobolt med chockgrön lime)
+  // 14. Nivå 14: Elektro-Blå & Neon Lime (Mörk rymdkobolt med chockgrön lime)
   {
     name: 'Elektro-Blå & Neon Lime',
     cubeCore: '#04122b',
@@ -234,7 +290,7 @@ const BASE_THEMES: BaseThemeDef[] = [
     shadowRGB: [0, 255, 68],
     accentGradient: 'linear-gradient(90deg, #2563eb, #00ff44)',
   },
-  // 12. Nivå 12: Magma Basalt & Molten Lava (Kolsotad lavabasalt med flytande orange eld)
+  // 15. Nivå 15: Magma Basalt & Molten Lava (Kolsotad lavabasalt med flytande orange eld)
   {
     name: 'Magma Basalt & Molten Lava',
     cubeCore: '#240502',
@@ -250,6 +306,24 @@ const BASE_THEMES: BaseThemeDef[] = [
     dirLight2Hex: '#450a0a',
     shadowRGB: [255, 68, 0],
     accentGradient: 'linear-gradient(90deg, #dc2626, #ff4400)',
+  },
+  // 16. Nivå 16: Supernova & Snövit (Vita Pilar ⚪) - Kosmisk nebulosa med lysande supernova-vita pilar
+  {
+    name: 'Supernova & Snövit (Vita Pilar ⚪)',
+    cubeCore: '#16081c',
+    cubeMid: '#0e0412',
+    cubeEdge: '#050107',
+    cubeRim: '#ffffff',
+    arrowBase: '#ffffff',
+    arrowGlow: '#fae8ff',
+    arrowCore: '#ffffff',
+    flyingArrowHex: '#ffffff',
+    pointLightHex: '#ffffff',
+    dirLight1Hex: '#faf5ff',
+    dirLight2Hex: '#4a044e',
+    shadowRGB: [255, 255, 255],
+    accentGradient: 'linear-gradient(90deg, #e879f9, #ffffff)',
+    isWhiteTheme: true,
   },
 ];
 
@@ -327,6 +401,38 @@ export function getLevelTheme(levelNumber: number): LevelTheme {
   const deltaHue = (cycle * 29) % 360;
 
   const base = BASE_THEMES[baseIdx];
+
+  // Om detta är ett tema med vita pilar bevarar vi ren kristallvit färg för pilar och ljus
+  if (base.isWhiteTheme) {
+    const cubeCore = shiftHexHue(base.cubeCore, deltaHue);
+    const cubeMid = shiftHexHue(base.cubeMid, deltaHue);
+    const cubeEdge = shiftHexHue(base.cubeEdge, deltaHue);
+    const cubeRim = '#ffffff';
+
+    const themeName =
+      cycle === 0 ? base.name : `${base.name} (Fas ${cycle + 1})`;
+
+    return {
+      name: themeName,
+      cubeCore,
+      cubeMid,
+      cubeEdge,
+      gridLine: 'rgba(255, 255, 255, 0.18)',
+      cubeRim,
+      arrowBase: '#ffffff',
+      arrowGlow: base.arrowGlow,
+      arrowCore: '#ffffff',
+      flyingArrowColor: 0xffffff,
+      pointLightColor: 0xffffff,
+      dirLight1Color: hexToNumber(base.dirLight1Hex),
+      dirLight2Color: hexToNumber(shiftHexHue(base.dirLight2Hex, deltaHue)),
+      shadowGlowR: 255,
+      shadowGlowG: 255,
+      shadowGlowB: 255,
+      accentGradient: base.accentGradient,
+      isWhiteTheme: true,
+    };
+  }
 
   const cubeCore = shiftHexHue(base.cubeCore, deltaHue);
   const cubeMid = shiftHexHue(base.cubeMid, deltaHue);

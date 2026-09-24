@@ -137,6 +137,7 @@
               <span class="quick-title">Snabbval:</span>
               <div class="quick-btn-grid">
                 <button class="quick-btn" data-level="1">1 (Start 20x20)</button>
+                <button class="quick-btn" data-level="4">4 (Vita Pilar ⚪)</button>
                 <button class="quick-btn" data-level="25">25 (Klassisk 20x20)</button>
                 <button class="quick-btn" data-level="50">50 (20x20 Labyrint)</button>
                 <button class="quick-btn" data-level="100">100 (20x20 Mästare)</button>
@@ -145,70 +146,6 @@
                 <button class="quick-btn" data-level="750">750 (24x24 Super-labyrint)</button>
                 <button class="quick-btn" data-level="1000">1000 (24x24 Grandmaster)</button>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Highscore / Topplista Modal -->
-      <div class="modal-backdrop hidden" id="highscore-modal">
-        <div class="modal-card leaderboard-card">
-          <div class="modal-header">
-            <h2>🏆 Topplista & Rekord</h2>
-            <button class="close-btn" id="close-highscore-modal">✕</button>
-          </div>
-          <div class="modal-body">
-            <!-- Flikar: Nivå Topp 10 vs All-Time High Topp 30 -->
-            <div class="lb-tabs-header">
-              <button class="lb-tab-btn" id="tab-level-lb">🎯 Nivå <span id="lb-selected-level-num">1</span> (Topp 10)</button>
-              <button class="lb-tab-btn active" id="tab-alltime-lb">👑 All-Time High (Topp 30)</button>
-            </div>
-
-            <!-- Nivåväljare (visas när Nivå-fliken är aktiv) -->
-            <div class="lb-level-switcher hidden" id="lb-level-switcher">
-              <button class="btn btn-secondary btn-sm" id="lb-prev-level" title="Föregående nivå">‹</button>
-              <span class="lb-level-title" id="lb-level-title">Nivå 1</span>
-              <button class="btn btn-secondary btn-sm" id="lb-next-level" title="Nästa nivå">›</button>
-            </div>
-
-            <div class="leaderboard-table-container">
-              <table class="leaderboard-table mode-alltime" id="leaderboard-table">
-                <thead>
-                  <tr>
-                    <th class="col-rank">Plats</th>
-                    <th class="col-player">Spelare</th>
-                    <th class="col-score">Poäng</th>
-                    <th id="lb-th-level" class="col-level">Nivå</th>
-                    <th class="col-date">Datum</th>
-                  </tr>
-                </thead>
-                <tbody id="leaderboard-body">
-                  <!-- Raderas/fylls via script -->
-                </tbody>
-              </table>
-            </div>
-
-            <div class="leaderboard-register-row" id="leaderboard-direct-entry">
-              <div class="direct-entry-prompt">Registrera initialer för nivåpoäng (<span id="lb-summary-score">0</span>p på Nivå <span id="lb-direct-current-level">1</span>):</div>
-              <div class="arcade-initials-wrapper">
-                <input
-                  type="text"
-                  id="direct-initials-input"
-                  class="arcade-input"
-                  maxlength="3"
-                  placeholder="AAA"
-                  autocomplete="off"
-                  autocorrect="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                />
-                <button class="btn btn-primary btn-sm" id="direct-save-score-btn">Spara Rekord</button>
-              </div>
-            </div>
-
-            <div class="leaderboard-footer" style="display: flex; gap: 10px; justify-content: space-between;">
-              <button class="btn btn-secondary btn-sm" id="sync-highscores-btn" title="Återställ alla tidigare sparade rekord från localhost">🔄 Återställ alla highscores</button>
-              <button class="btn btn-primary" id="close-highscore-btn" style="flex: 1;">Stäng</button>
             </div>
           </div>
         </div>
@@ -291,6 +228,70 @@
             <div class="win-secondary-btns">
               <button class="btn btn-secondary" id="time-over-leaderboard-btn">Visa Topplista 🏆</button>
               <button class="btn btn-secondary" id="exit-time-attack-btn">Tillbaka till Klassisk</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Highscore / Topplista Modal (ligger nu sist i DOM för optimal stacking över vinstfönstret) -->
+      <div class="modal-backdrop hidden" id="highscore-modal">
+        <div class="modal-card leaderboard-card">
+          <div class="modal-header">
+            <h2>🏆 Topplista & Rekord</h2>
+            <button class="close-btn" id="close-highscore-modal">✕</button>
+          </div>
+          <div class="modal-body">
+            <!-- Flikar: Nivå Topp 10 vs All-Time High Topp 30 -->
+            <div class="lb-tabs-header">
+              <button class="lb-tab-btn" id="tab-level-lb">🎯 Nivå <span id="lb-selected-level-num">1</span> (Topp 10)</button>
+              <button class="lb-tab-btn active" id="tab-alltime-lb">👑 All-Time High (Topp 30)</button>
+            </div>
+
+            <!-- Nivåväljare (visas när Nivå-fliken är aktiv) -->
+            <div class="lb-level-switcher hidden" id="lb-level-switcher">
+              <button class="btn btn-secondary btn-sm" id="lb-prev-level" title="Föregående nivå">‹</button>
+              <span class="lb-level-title" id="lb-level-title">Nivå 1</span>
+              <button class="btn btn-secondary btn-sm" id="lb-next-level" title="Nästa nivå">›</button>
+            </div>
+
+            <div class="leaderboard-table-container">
+              <table class="leaderboard-table mode-alltime" id="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th class="col-rank">Plats</th>
+                    <th class="col-player">Spelare</th>
+                    <th class="col-score">Poäng</th>
+                    <th id="lb-th-level" class="col-level">Nivå</th>
+                    <th class="col-date">Datum</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                  <!-- Raderas/fylls via script -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="leaderboard-register-row" id="leaderboard-direct-entry">
+              <div class="direct-entry-prompt">Registrera initialer för nivåpoäng (<span id="lb-summary-score">0</span>p på Nivå <span id="lb-direct-current-level">1</span>):</div>
+              <div class="arcade-initials-wrapper">
+                <input
+                  type="text"
+                  id="direct-initials-input"
+                  class="arcade-input"
+                  maxlength="3"
+                  placeholder="AAA"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                />
+                <button class="btn btn-primary btn-sm" id="direct-save-score-btn">Spara Rekord</button>
+              </div>
+            </div>
+
+            <div class="leaderboard-footer" style="display: flex; gap: 10px; justify-content: space-between;">
+              <button class="btn btn-secondary btn-sm" id="sync-highscores-btn" title="Synkronisera mot globala molnlistan">🔄 Uppdatera topplista</button>
+              <button class="btn btn-primary" id="close-highscore-btn" style="flex: 1;">Stäng</button>
             </div>
           </div>
         </div>

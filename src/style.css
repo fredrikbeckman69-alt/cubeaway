@@ -443,6 +443,10 @@ html, body {
   pointer-events: none;
 }
 
+#highscore-modal {
+  z-index: 200;
+}
+
 .modal-card {
   background: #14051e;
   border-radius: 24px;

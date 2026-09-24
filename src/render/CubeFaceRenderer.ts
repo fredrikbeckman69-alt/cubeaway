@@ -109,7 +109,12 @@ export class CubeFaceRenderer {
         coreColor = 'rgba(255, 230, 180, 0.95)';
       } else if (isHovered) {
         baseColor = '#ffffff'; // Vitglödgad vid hovring
-        glowColor = arrow.type === 'frozen' && arrow.isFrozen ? '#00e1ff' : this.theme.arrowGlow;
+        glowColor =
+          arrow.type === 'frozen' && arrow.isFrozen
+            ? '#00e1ff'
+            : this.theme.isWhiteTheme
+            ? '#38bdf8'
+            : this.theme.arrowGlow;
         coreColor = '#ffffff';
       } else if (isHint) {
         baseColor = '#ffe500'; // Guldgul vid tips

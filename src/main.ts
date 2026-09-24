@@ -445,6 +445,13 @@ class CubeAwayGame {
     const modal = document.getElementById('highscore-modal');
     modal?.classList.remove('hidden');
 
+    scoreManager
+      .syncWithCloud()
+      .then(() => {
+        this.renderLeaderboard();
+      })
+      .catch(() => {});
+
     const input = document.getElementById('direct-initials-input') as HTMLInputElement;
     if (input) {
       input.value = '';
@@ -1149,15 +1156,17 @@ class CubeAwayGame {
       this.leaderboardTab = 'alltime';
       this.renderLeaderboard();
     });
-    document.getElementById('sync-highscores-btn')?.addEventListener('click', () => {
+    document.getElementById('sync-highscores-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('sync-highscores-btn');
+      if (btn) btn.textContent = '⏳ Hämtar...';
       scoreManager.migrateLegacyVaults();
+      await scoreManager.syncWithCloud();
       this.leaderboardTab = 'alltime';
       this.renderLeaderboard();
-      const btn = document.getElementById('sync-highscores-btn');
       if (btn) {
-        btn.textContent = '✓ Återställt!';
+        btn.textContent = '✓ Uppdaterat!';
         setTimeout(() => {
-          btn.textContent = '🔄 Återställ alla highscores';
+          btn.textContent = '🔄 Uppdatera topplista';
         }, 1500);
       }
     });

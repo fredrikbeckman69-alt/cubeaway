@@ -16,6 +16,12 @@ const LEGACY_PLAYER_VAULT_KEY = 'cubeaway_player_vault';
 const LEGACY_STORAGE_KEY = 'cubeaway_highscores';
 const STARS_STORAGE_KEY = 'cubeaway_stars';
 
+// Globala Cloudflare-backade HTTPS REST-endpoints för delad global highscore (CORS-godkända)
+const CLOUD_ENDPOINTS = [
+  'https://api.restful-api.dev/objects/ff808181a09d98f701a0d250ae200525',
+  'https://api.restful-api.dev/objects/ff808181a09d98f701a0d2516e890526',
+];
+
 // 30 förvalda All-Time High arkadlegendarer fördelade över olika nivåer
 const DEFAULT_ALLTIME_HIGHSCORES: Omit<HighScoreEntry, 'rank'>[] = [
   { initials: 'FB', score: 1106450, level: 24, date: '2026-09-21', isPlayer: true },
@@ -67,8 +73,15 @@ export class ScoreManager {
   private timeAttackActive: boolean = false;
   private maxComboInCurrentLevel: number = 0;
 
+  private isSyncing: boolean = false;
+
   constructor() {
     this.migrateLegacyVaults();
+    if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
+      setTimeout(() => {
+        this.syncWithCloud().catch(() => {});
+      }, 500);
+    }
   }
 
   /**
@@ -557,12 +570,101 @@ export class ScoreManager {
   }
 
   // =========================================================================
-  // 3. REGISTRERING OCH SPARANDE AV RESULTAT
+  // 3. GLOBAL MOLNSYNRONISERING (DELAS MELLAN ALLA SPELARE ÖVER HTTPS)
+  // =========================================================================
+
+  /**
+   * Synkroniserar lokala valv med den globala molndatabasen (Cloudflare CORS REST).
+   * Hämtar nya resultat från andra spelare och sparar lokala framsteg globalt.
+   */
+  public async syncWithCloud(): Promise<boolean> {
+    if (this.isSyncing) return false;
+    this.isSyncing = true;
+
+    try {
+      for (const url of CLOUD_ENDPOINTS) {
+        try {
+          const resp = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          });
+          if (!resp.ok) continue;
+
+          const json = await resp.json();
+          const cloudData = json && json.data ? json.data : null;
+
+          if (cloudData) {
+            // 1. Merga globala All-Time High till lokalt valv
+            if (Array.isArray(cloudData.alltime)) {
+              cloudData.alltime.forEach((e: any) => {
+                if (e && e.initials && typeof e.score === 'number' && e.score > 0) {
+                  this.saveToAllTimeVault({
+                    initials: this.sanitizeInitials(e.initials),
+                    score: Number(e.score),
+                    level: Number(e.level) || 1,
+                    date: e.date || new Date().toISOString().slice(0, 10),
+                    isPlayer: true,
+                  });
+                }
+              });
+            }
+
+            // 2. Merga globala nivårekord till lokalt nivåvalv
+            if (cloudData.levels && typeof cloudData.levels === 'object') {
+              for (const [lvlKey, entries] of Object.entries(cloudData.levels)) {
+                const lvl = parseInt(lvlKey, 10);
+                if (!isNaN(lvl) && Array.isArray(entries)) {
+                  entries.forEach((e: any) => {
+                    if (e && e.initials && typeof e.score === 'number' && e.score > 0) {
+                      this.saveToLevelVault(lvl, {
+                        initials: this.sanitizeInitials(e.initials),
+                        score: Number(e.score),
+                        level: lvl,
+                        date: e.date || new Date().toISOString().slice(0, 10),
+                        isPlayer: true,
+                      });
+                    }
+                  });
+                }
+              }
+            }
+          }
+
+          // Hämta hela det kombinerade lokala valvet och pusha uppdateringen till molnet
+          const localAllTime = this.getPlayerAllTimeVault();
+          const localLevels = this.getPlayerLevelVault();
+
+          await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'CubeAway_Global_Leaderboard',
+              data: {
+                alltime: localAllTime,
+                levels: localLevels,
+              },
+            }),
+          });
+
+          this.isSyncing = false;
+          return true;
+        } catch (err) {
+          console.warn('Varning: Kunde inte ansluta till moln-endpoint', url, err);
+        }
+      }
+    } finally {
+      this.isSyncing = false;
+    }
+    return false;
+  }
+
+  // =========================================================================
+  // 4. REGISTRERING OCH SPARANDE AV RESULTAT
   // =========================================================================
 
   /**
    * Sparar spelarens resultat i både nivåns Topp 10 och All-Time High Topp 30 om det kvalificerar sig.
-   * GARANTI: Spelas alltid permanent in i säkra valv.
+   * GARANTI: Spelas alltid permanent in i säkra valv och skickas till det globala molnet.
    */
   public saveHighScore(
     initials: string,
@@ -591,7 +693,12 @@ export class ScoreManager {
     // 2. Spara i All-Time High-valvet
     this.saveToAllTimeVault(entry);
 
-    // 3. Beräkna rangordning
+    // 3. Synkronisera omedelbart med globala molnet i bakgrunden
+    if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
+      this.syncWithCloud().catch(() => {});
+    }
+
+    // 4. Beräkna rangordning
     const levelList = this.getLevelLeaderboard(level);
     const levelIdx = levelList.findIndex(
       (e) => e.initials === cleanInitials && e.score === score && e.isPlayer
