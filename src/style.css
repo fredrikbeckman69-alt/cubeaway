@@ -776,6 +776,16 @@ html, body {
   color: #ffffff;
 }
 
+.score-value.negative {
+  color: #ff3366 !important;
+  text-shadow: 0 0 14px rgba(255, 0, 85, 0.85) !important;
+}
+
+.score-value.negative.bump {
+  color: #ff6699 !important;
+  transform: scale(1.18);
+}
+
 /* Combo Bricka */
 .combo-badge {
   display: flex;

@@ -322,7 +322,13 @@ class CubeAwayGame {
   private updateScoreHUD() {
     const scoreVal = document.getElementById('current-score');
     if (scoreVal) {
-      scoreVal.textContent = scoreManager.getScore().toLocaleString('sv-SE');
+      const score = scoreManager.getScore();
+      scoreVal.textContent = score.toLocaleString('sv-SE');
+      if (score < 0) {
+        scoreVal.classList.add('negative');
+      } else {
+        scoreVal.classList.remove('negative');
+      }
     }
   }
 
@@ -800,6 +806,7 @@ class CubeAwayGame {
       if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
       const { penalty } = scoreManager.onBlockedArrow();
       this.updateScoreHUD();
+      this.bumpScoreHUD();
       this.updateComboHUD();
 
       const clickX = hit.clientX ?? window.innerWidth / 2;

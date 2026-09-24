@@ -328,7 +328,7 @@ export class ScoreManager {
     // I Tidspress rinner tiden redan iväg medan man letar och combon nollställs.
     // Inget extra tidsavdrag dras från klockan så att spelaren inte drabbas av panik.
 
-    this.currentScore = Math.max(0, this.currentScore - penalty);
+    this.currentScore -= penalty;
 
     return {
       penalty,
