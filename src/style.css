@@ -150,7 +150,7 @@ html, body {
   flex-shrink: 0;
 }
 
-/* Nivå-bricka - Responsiv men stabil storlek */
+/* Nivå-bricka - STRIKT LÅST STORLEK (FAILSAFE: FÅR ALDRIG ÄNDRA BREDD I SIDLED) */
 .level-badge {
   display: flex;
   align-items: center;
@@ -165,9 +165,9 @@ html, body {
   font-weight: 700;
   font-size: 14px;
   color: #fdf2f8;
-  width: auto;
-  min-width: 200px;
-  max-width: 360px;
+  width: 330px !important;
+  min-width: 330px !important;
+  max-width: 330px !important;
   height: 42px;
   min-height: 42px;
   max-height: 42px;
@@ -192,6 +192,7 @@ html, body {
   overflow: hidden;
   user-select: none;
   pointer-events: none;
+  min-width: 0;
 }
 
 #level-text {
@@ -202,7 +203,7 @@ html, body {
   padding: 0 2px;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px;
+  min-width: 0;
 }
 
 .level-stars {
@@ -1373,9 +1374,9 @@ html, body {
     min-width: 0;
   }
   .level-badge {
-    width: auto;
-    max-width: 280px;
-    min-width: 200px;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
   }
   .mode-selector {
     gap: 2px;
@@ -1428,9 +1429,9 @@ html, body {
     font-size: 15px;
   }
   .level-badge {
-    width: 100%;
-    max-width: 280px;
-    min-width: 0;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
     height: 38px;
     min-height: 38px;
     font-size: 13px;
