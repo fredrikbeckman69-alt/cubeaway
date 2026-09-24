@@ -163,11 +163,11 @@ html, body {
   box-shadow: 0 4px 20px rgba(255, 20, 147, 0.2);
   border: 1px solid rgba(255, 45, 135, 0.35);
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 14px;
   color: #fdf2f8;
-  width: 330px;
-  min-width: 0;
-  max-width: 100%;
+  width: auto;
+  min-width: 200px;
+  max-width: 360px;
   height: 42px;
   min-height: 42px;
   max-height: 42px;
@@ -200,6 +200,9 @@ html, body {
   user-select: none;
   pointer-events: none;
   padding: 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
 }
 
 .level-stars {
@@ -1093,7 +1096,9 @@ html, body {
   line-height: 1.2;
   width: auto;
   min-width: 0;
-  max-width: none;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   height: auto;
   min-height: 0;
   max-height: none;

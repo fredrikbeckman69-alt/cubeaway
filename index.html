@@ -33,13 +33,13 @@
             <span class="logo-icon">🎲</span>
             <span class="logo-text">CubeAway</span>
           </div>
-          <div class="level-badge" id="level-display" title="Klicka för att välja nivå">
-            <button class="nav-arrow-btn" id="prev-level-btn" title="Föregående nivå">‹</button>
+          <div class="level-badge" id="level-display" title="Klicka för att välja bana">
+            <button class="nav-arrow-btn" id="prev-level-btn" title="Föregående bana">‹</button>
             <div class="level-info-wrap">
-              <span id="level-text">Nivå 1 / 1000</span>
-              <span id="level-stars" class="level-stars" title="Stjärnor på denna nivå">☆☆☆</span>
+              <span id="level-text">Bana 1 • Solen</span>
+              <span id="level-stars" class="level-stars" title="Stjärnor på denna bana">☆☆☆</span>
             </div>
-            <button class="nav-arrow-btn" id="next-level-btn" title="Nästa nivå">›</button>
+            <button class="nav-arrow-btn" id="next-level-btn" title="Nästa bana">›</button>
           </div>
           <a class="celestial-link-btn" id="celestial-explore-btn" href="#" target="_blank" rel="noopener noreferrer" title="Utforska himlakroppen i 3D-universum">
             <span class="celestial-icon">🌌</span>
@@ -101,7 +101,7 @@
           <button class="icon-btn" id="sound-btn" title="Ljudeffekter av/på">
             <span class="btn-icon" id="sound-icon">🔊</span>
           </button>
-          <button class="icon-btn" id="levels-modal-btn" title="Välj nivå (1-1000)">
+          <button class="icon-btn" id="levels-modal-btn" title="Välj bana (1-1000)">
             <span class="btn-icon">📑</span>
           </button>
         </div>
@@ -127,33 +127,33 @@
         </div>
       </footer>
 
-      <!-- Nivåväljare Modal -->
+      <!-- Banväljare Modal -->
       <div class="modal-backdrop hidden" id="level-modal">
         <div class="modal-card">
           <div class="modal-header">
-            <h2>Välj Nivå (1 – 1000)</h2>
+            <h2>Välj Bana (1 – 1000)</h2>
             <button class="close-btn" id="close-level-modal">✕</button>
           </div>
           <div class="modal-body">
             <div class="level-jump-row">
-              <label for="level-input">Hoppa direkt till nivå:</label>
+              <label for="level-input">Hoppa direkt till bana:</label>
               <div class="input-group">
                 <input type="number" id="level-input" min="1" max="1000" value="1" />
-                <button class="btn btn-primary" id="jump-level-btn">Gå till nivå</button>
+                <button class="btn btn-primary" id="jump-level-btn">Gå till bana</button>
               </div>
             </div>
             <div class="level-quick-links">
               <span class="quick-title">Snabbval:</span>
               <div class="quick-btn-grid">
-                <button class="quick-btn" data-level="1">1 (Start 20x20)</button>
-                <button class="quick-btn" data-level="4">4 (Vita Pilar ⚪)</button>
-                <button class="quick-btn" data-level="25">25 (Klassisk 20x20)</button>
-                <button class="quick-btn" data-level="50">50 (20x20 Labyrint)</button>
-                <button class="quick-btn" data-level="100">100 (20x20 Mästare)</button>
-                <button class="quick-btn" data-level="250">250 (22x22 Utmaning)</button>
-                <button class="quick-btn" data-level="500">500 (22x22 Expert)</button>
-                <button class="quick-btn" data-level="750">750 (24x24 Super-labyrint)</button>
-                <button class="quick-btn" data-level="1000">1000 (24x24 Grandmaster)</button>
+                <button class="quick-btn" data-level="1">Bana 1 • Solen</button>
+                <button class="quick-btn" data-level="4">Bana 4 • Jorden (Tellus)</button>
+                <button class="quick-btn" data-level="25">Bana 25 • Triton</button>
+                <button class="quick-btn" data-level="50">Bana 50 • Psyche</button>
+                <button class="quick-btn" data-level="100">Bana 100 • Ryugu</button>
+                <button class="quick-btn" data-level="250">Bana 250 • Vega</button>
+                <button class="quick-btn" data-level="500">Bana 500 • Kepler-452b</button>
+                <button class="quick-btn" data-level="750">Bana 750 • Plejaderna</button>
+                <button class="quick-btn" data-level="1000">Bana 1000 • Hercules-Corona Borealis</button>
               </div>
             </div>
           </div>
@@ -165,7 +165,7 @@
         <div class="modal-card win-card">
           <button class="modal-corner-close-btn" id="close-win-modal-btn" title="Stäng fönster (Esc)">✕</button>
           <div class="win-sparkle">✨🏆✨</div>
-          <h2 class="win-title">Kuben är rensad!</h2>
+          <h2 class="win-title">Bana 1 • Solen klarad!</h2>
 
           <!-- Stjärnutdelning i vinstfönstret -->
           <div class="win-stars-container" id="win-stars-container">
@@ -179,11 +179,11 @@
           <!-- Poängsummering i vinstfönstret -->
           <div class="win-score-box">
             <div class="win-score-row">
-              <span class="win-score-label">Nivåbonus:</span>
+              <span class="win-score-label">Banbonus:</span>
               <span class="win-score-val" id="win-level-bonus">+0</span>
             </div>
             <div class="win-score-row total">
-              <span class="win-score-label">Nivåpoäng:</span>
+              <span class="win-score-label">Banpoäng:</span>
               <span class="win-score-val highlight" id="win-total-score">0</span>
             </div>
           </div>
@@ -224,10 +224,10 @@
           </div>
 
           <div class="win-actions">
-            <button class="btn btn-primary btn-large" id="next-level-win-btn">Nästa Nivå ›</button>
+            <button class="btn btn-primary btn-large" id="next-level-win-btn">Nästa Bana ›</button>
             <div class="win-secondary-btns">
               <button class="btn btn-secondary" id="win-leaderboard-btn">Visa Topplista 🏆</button>
-              <button class="btn btn-secondary" id="replay-level-win-btn">Spela igen</button>
+              <button class="btn btn-secondary" id="replay-level-win-btn">Spela om Bana 🔄</button>
             </div>
           </div>
         </div>
@@ -264,17 +264,17 @@
             <button class="close-btn" id="close-highscore-modal">✕</button>
           </div>
           <div class="modal-body">
-            <!-- Flikar: Nivå Topp 10 vs All-Time High Topp 30 -->
+            <!-- Flikar: Bana Topp 10 vs All-Time High Topp 30 -->
             <div class="lb-tabs-header">
-              <button class="lb-tab-btn" id="tab-level-lb">🎯 Nivå <span id="lb-selected-level-num">1</span> (Topp 10)</button>
+              <button class="lb-tab-btn" id="tab-level-lb">🎯 Bana <span id="lb-selected-level-num">1</span> (Topp 10)</button>
               <button class="lb-tab-btn active" id="tab-alltime-lb">👑 All-Time High (Topp 30)</button>
             </div>
 
-            <!-- Nivåväljare (visas när Nivå-fliken är aktiv) -->
+            <!-- Banväljare (visas när Bana-fliken är aktiv) -->
             <div class="lb-level-switcher hidden" id="lb-level-switcher">
-              <button class="btn btn-secondary btn-sm" id="lb-prev-level" title="Föregående nivå">‹</button>
-              <span class="lb-level-title" id="lb-level-title">Nivå 1</span>
-              <button class="btn btn-secondary btn-sm" id="lb-next-level" title="Nästa nivå">›</button>
+              <button class="btn btn-secondary btn-sm" id="lb-prev-level" title="Föregående bana">‹</button>
+              <span class="lb-level-title" id="lb-level-title">Bana 1 • Solen</span>
+              <button class="btn btn-secondary btn-sm" id="lb-next-level" title="Nästa bana">›</button>
             </div>
 
             <div class="leaderboard-table-container">
@@ -284,7 +284,7 @@
                     <th class="col-rank">Plats</th>
                     <th class="col-player">Spelare</th>
                     <th class="col-score">Poäng</th>
-                    <th id="lb-th-level" class="col-level">Nivå</th>
+                    <th id="lb-th-level" class="col-level">Bana</th>
                     <th class="col-date">Datum</th>
                   </tr>
                 </thead>
@@ -295,7 +295,7 @@
             </div>
 
             <div class="leaderboard-register-row" id="leaderboard-direct-entry">
-              <div class="direct-entry-prompt">Registrera initialer för nivåpoäng (<span id="lb-summary-score">0</span>p på Nivå <span id="lb-direct-current-level">1</span>):</div>
+              <div class="direct-entry-prompt">Registrera initialer för banpoäng (<span id="lb-summary-score">0</span>p på Bana <span id="lb-direct-current-level">1 • Solen</span>):</div>
               <div class="arcade-initials-wrapper">
                 <input
                   type="text"

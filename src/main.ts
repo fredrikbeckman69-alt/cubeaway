@@ -262,6 +262,7 @@ class CubeAwayGame {
     this.currentCelestialBody = getCelestialBody(this.currentLevel);
     this.currentTheme = getLevelTheme(this.currentLevel);
     this.faceRenderer.setTheme(this.currentTheme);
+    document.title = `CubeAway 3D - Bana ${this.currentLevel} • ${this.currentCelestialBody.name}`;
 
     // 2. Uppdatera 3D-geometrin för vald form (100 % balanserad polyeder med pilar på alla 6 sidor)
     if (this.cubeMesh) {
@@ -385,15 +386,16 @@ class CubeAwayGame {
     const thLevel = document.getElementById('lb-th-level');
     const directLevelEl = document.getElementById('lb-direct-current-level');
 
-    if (directLevelEl) directLevelEl.textContent = this.currentLevel.toString();
+    if (directLevelEl) directLevelEl.textContent = `${this.currentLevel} • ${this.currentCelestialBody.name}`;
 
     if (this.leaderboardTab === 'level') {
       tabLevelBtn?.classList.add('active');
       tabAlltimeBtn?.classList.remove('active');
       levelSwitcher?.classList.remove('hidden');
       thLevel?.classList.add('hidden');
+      const targetCelestial = getCelestialBody(this.leaderboardViewLevel);
       if (selectedLevelNum) selectedLevelNum.textContent = this.leaderboardViewLevel.toString();
-      if (levelTitle) levelTitle.textContent = `Nivå ${this.leaderboardViewLevel}`;
+      if (levelTitle) levelTitle.textContent = `Bana ${this.leaderboardViewLevel} • ${targetCelestial.name}`;
     } else {
       tabLevelBtn?.classList.remove('active');
       tabAlltimeBtn?.classList.add('active');
@@ -438,8 +440,9 @@ class CubeAwayGame {
         rankClass = 'bronze';
       }
 
+      const celestial = getCelestialBody(entry.level);
       const levelCell = this.leaderboardTab === 'alltime'
-        ? `<td class="col-level"><span class="lb-level-badge">Nivå ${entry.level}</span></td>`
+        ? `<td class="col-level"><span class="lb-level-badge" title="Bana ${entry.level} • ${celestial.name} (${celestial.category})">${entry.level}. ${celestial.name}</span></td>`
         : '';
 
       tr.innerHTML = `
@@ -483,7 +486,7 @@ class CubeAwayGame {
   private updateHUD() {
     const levelText = document.getElementById('level-text');
     if (levelText) {
-      levelText.textContent = `Nivå ${this.currentLevel} • ${this.currentCelestialBody.name}`;
+      levelText.textContent = `Bana ${this.currentLevel} • ${this.currentCelestialBody.name}`;
     }
 
     const celestialBtn = document.getElementById('celestial-explore-btn') as HTMLAnchorElement;
@@ -498,7 +501,7 @@ class CubeAwayGame {
 
     const levelBadge = document.getElementById('level-display');
     if (levelBadge) {
-      levelBadge.title = `${this.currentCelestialBody.name} (${this.currentCelestialBody.category}) • ${this.currentShape.name} • ${this.currentTheme.name}`;
+      levelBadge.title = `Bana ${this.currentLevel}: ${this.currentCelestialBody.name} (${this.currentCelestialBody.category}) • ${this.currentShape.name} • ${this.currentTheme.name}`;
     }
 
     const levelStars = document.getElementById('level-stars');
@@ -928,9 +931,13 @@ class CubeAwayGame {
     stars: number = 3
   ) {
     const modal = document.getElementById('win-modal');
+    const winTitle = modal?.querySelector('.win-title');
+    if (winTitle) {
+      winTitle.textContent = `Bana ${this.currentLevel} • ${this.currentCelestialBody.name} klarad!`;
+    }
     const desc = document.getElementById('win-desc');
     if (desc) {
-      desc.textContent = `Otroligt snyggt! Nivå ${this.currentLevel} • ${this.currentCelestialBody.name} (${this.currentShape.name}) är avklarad.`;
+      desc.textContent = `Otroligt snyggt! Bana ${this.currentLevel} • ${this.currentCelestialBody.name} (${this.currentShape.name}) är avklarad.`;
     }
 
     const cCategory = document.getElementById('win-celestial-category');
@@ -986,9 +993,9 @@ class CubeAwayGame {
       if (isAllTimeHigh) {
         hsBanner.textContent = '👑 NYTT ALL-TIME HIGH! 👑';
       } else if (isLevelHigh) {
-        hsBanner.textContent = `🌟 NYTT REKORD PÅ NIVÅ ${this.currentLevel}! 🌟`;
+        hsBanner.textContent = `🌟 NYTT REKORD PÅ BANA ${this.currentLevel} • ${this.currentCelestialBody.name.toUpperCase()}! 🌟`;
       } else {
-        hsBanner.textContent = '🌟 SPARA DITT NIVÅRESULTAT! 🌟';
+        hsBanner.textContent = `🌟 SPARA DITT RESULTAT FÖR BANA ${this.currentLevel}! 🌟`;
       }
     }
 
@@ -1074,7 +1081,7 @@ class CubeAwayGame {
         const body = getCelestialBody(lvl);
         const stars = scoreManager.getLevelStars(lvl);
         const starStr = stars > 0 ? ' ' + '★'.repeat(stars) : '';
-        btn.textContent = `${lvl} • ${body.name}${starStr}`;
+        btn.textContent = `Bana ${lvl} • ${body.name}${starStr}`;
       });
     };
 
@@ -1231,9 +1238,9 @@ class CubeAwayGame {
         const rankEl = document.getElementById('win-saved-rank');
         if (rankEl) {
           if (res.levelRank !== -1 && res.allTimeRank !== -1) {
-            rankEl.textContent = `#${res.levelRank} (Nivå ${this.currentLevel}) & #${res.allTimeRank} All-Time High`;
+            rankEl.textContent = `#${res.levelRank} (Bana ${this.currentLevel} • ${this.currentCelestialBody.name}) & #${res.allTimeRank} All-Time High`;
           } else if (res.levelRank !== -1) {
-            rankEl.textContent = `#${res.levelRank} på Nivå ${this.currentLevel}`;
+            rankEl.textContent = `#${res.levelRank} på Bana ${this.currentLevel} • ${this.currentCelestialBody.name}`;
           } else if (res.allTimeRank !== -1) {
             rankEl.textContent = `#${res.allTimeRank} All-Time High`;
           } else {
