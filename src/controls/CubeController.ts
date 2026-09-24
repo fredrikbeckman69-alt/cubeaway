@@ -407,7 +407,18 @@ export class CubeController {
     if (intersects.length > 0) {
       const hit = intersects[0];
       if (hit.faceIndex !== undefined && hit.faceIndex !== null && hit.uv) {
-        const faceIdx = Math.floor(hit.faceIndex / 2);
+        let faceIdx = 0;
+        const geo = this.cubeMesh.geometry as THREE.BufferGeometry;
+        if (geo.groups && geo.groups.length > 0) {
+          const vertIdx = hit.faceIndex * 3;
+          const group = geo.groups.find(
+            (g) => vertIdx >= g.start && vertIdx < g.start + g.count
+          );
+          faceIdx = group?.materialIndex ?? Math.floor(hit.faceIndex / 2);
+        } else {
+          faceIdx = Math.floor(hit.faceIndex / 2);
+        }
+
         const u = THREE.MathUtils.clamp(hit.uv.x, 0, 0.9999);
         const v = THREE.MathUtils.clamp(hit.uv.y, 0, 0.9999);
 

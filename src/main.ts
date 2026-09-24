@@ -5,7 +5,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { generateCubePuzzle, canArrowFly } from './puzzle/generator';
 import { Arrow, DIR_DELTA, GameMode } from './puzzle/types';
 import { LevelTheme, getLevelTheme } from './puzzle/theme';
-import { ShapeDefinition, getLevelShape, createShapeGeometry, createShapeAccessories } from './puzzle/shapes';
+import { ShapeDefinition, getLevelShape, createShapeGeometry } from './puzzle/shapes';
 import { CubeFaceRenderer } from './render/CubeFaceRenderer';
 import { FlyingArrowManager } from './render/FlyingArrowManager';
 import { ParticleManager } from './render/ParticleManager';
@@ -22,7 +22,6 @@ class CubeAwayGame {
   private bloomPass!: UnrealBloomPass;
   private cubeGroup: THREE.Group;
   private cubeMesh!: THREE.Mesh;
-  private currentShapeAccessories: THREE.Group | null = null;
 
   // Ljus
   private dirLight1!: THREE.DirectionalLight;
@@ -235,25 +234,9 @@ class CubeAwayGame {
 
 
 
-  private disposeObject(obj: THREE.Object3D) {
-    obj.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      if (mesh.geometry) {
-        mesh.geometry.dispose();
-      }
-      if (mesh.material) {
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((m) => m.dispose());
-        } else {
-          mesh.material.dispose();
-        }
-      }
-    });
-  }
-
   private createCubeMesh() {
     this.currentShape = getLevelShape(this.currentLevel);
-    const geo = createShapeGeometry();
+    const geo = createShapeGeometry(this.currentShape);
     const materials = this.faceRenderer.textures.map(
       (tex) =>
         new THREE.MeshStandardMaterial({
@@ -265,7 +248,7 @@ class CubeAwayGame {
 
     this.cubeMesh = new THREE.Mesh(geo, materials);
     this.cubeGroup.add(this.cubeMesh);
-    this.flyingManager.setGeometry(geo);
+    this.flyingManager.setShapeType(this.currentShape.type);
   }
 
   public loadLevel(levelNum: number, isRestart: boolean = false) {
@@ -277,19 +260,12 @@ class CubeAwayGame {
     this.currentTheme = getLevelTheme(this.currentLevel);
     this.faceRenderer.setTheme(this.currentTheme);
 
-    // 2. Uppdatera 3D-arkitektoniska tillbehör för vald form (kuben förblir 100 % symmetrisk så inga pilar trycks ihop)
-    if (this.currentShapeAccessories) {
-      this.cubeGroup.remove(this.currentShapeAccessories);
-      this.disposeObject(this.currentShapeAccessories);
-      this.currentShapeAccessories = null;
-    }
-    this.currentShapeAccessories = createShapeAccessories(
-      this.currentShape,
-      this.currentTheme.flyingArrowColor
-    );
-    this.cubeGroup.add(this.currentShapeAccessories);
-
+    // 2. Uppdatera 3D-geometrin för vald form (100 % balanserad polyeder med pilar på alla 6 sidor)
     if (this.cubeMesh) {
+      this.cubeMesh.geometry.dispose();
+      this.cubeMesh.geometry = createShapeGeometry(this.currentShape);
+      this.flyingManager.setShapeType(this.currentShape.type);
+      this.controller.setCubeMesh(this.cubeMesh, this.gridSize);
       this.controller.setTargetDistance(this.currentShape.cameraDistance);
 
       const mats = this.cubeMesh.material as THREE.MeshStandardMaterial[];
