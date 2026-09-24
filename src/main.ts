@@ -307,8 +307,8 @@ class CubeAwayGame {
     this.totalInitialArrows = this.allArrows.length;
     this.remainingArrows = this.allArrows.length;
 
-    // Starta nivå och synka poängmätare
-    scoreManager.startLevel(isRestart);
+    // Starta nivå och synka poängmätare med banans faktiska antal pilar
+    scoreManager.startLevel(isRestart, this.totalInitialArrows);
 
     // Rita alla 6 kubsidor med det nya temat
     for (let f = 0; f < 6; f++) {
@@ -349,6 +349,16 @@ class CubeAwayGame {
     } else {
       badge?.classList.add('hidden');
     }
+  }
+
+  private formatTimer(seconds: number): string {
+    const s = Math.max(0, Math.ceil(seconds));
+    if (s < 60) {
+      return `${s}s`;
+    }
+    const mins = Math.floor(s / 60);
+    const remSec = s % 60;
+    return `${mins}:${remSec < 10 ? '0' : ''}${remSec}`;
   }
 
   private spawnScoreToast(
@@ -611,19 +621,26 @@ class CubeAwayGame {
     sound.playArrowSuccess(scoreManager.getComboStreak());
     if ('vibrate' in navigator) navigator.vibrate(15);
 
-    // Poäng & Combo
-    const { pointsAdded, multiplier } = scoreManager.addArrowScore(arrow.cells.length);
+    // Poäng, Combo & Tidsbonus
+    const { pointsAdded, multiplier, timeBonusAdded } = scoreManager.addArrowScore(
+      arrow.cells.length,
+      arrow.type === 'linked'
+    );
     this.updateScoreHUD();
     this.bumpScoreHUD();
     this.updateComboHUD();
 
     const clickX = clientX ?? window.innerWidth / 2;
     const clickY = clientY ?? window.innerHeight / 2;
+    let toastMsg = `+${pointsAdded}${multiplier > 1 ? ` (x${multiplier}!)` : ''}`;
+    if (scoreManager.getGameMode() === 'time_attack' && timeBonusAdded > 0) {
+      toastMsg += ` +${timeBonusAdded}s ⏱️`;
+    }
     this.spawnScoreToast(
-      `+${pointsAdded}${multiplier > 1 ? ` (x${multiplier}!)` : ''}`,
+      toastMsg,
       clickX,
       clickY,
-      multiplier > 1 ? 'combo-bonus' : 'positive'
+      multiplier > 1 || timeBonusAdded > 0 ? 'combo-bonus' : 'positive'
     );
 
     // Rensa eventuella highlights
@@ -1323,7 +1340,7 @@ class CubeAwayGame {
 
     const setMode = (mode: GameMode) => {
       sound.initCtx();
-      scoreManager.setGameMode(mode);
+      scoreManager.setGameMode(mode, this.totalInitialArrows);
       [modeClassicBtn, modeTimeBtn, modeZenBtn].forEach((b) => b?.classList.remove('active'));
       if (mode === 'classic') modeClassicBtn?.classList.add('active');
       else if (mode === 'time_attack') modeTimeBtn?.classList.add('active');
@@ -1426,8 +1443,16 @@ class CubeAwayGame {
 
     if (scoreManager.getGameMode() === 'time_attack') {
       const timerEl = document.getElementById('time-attack-timer');
+      const timerContainer = document.getElementById('time-attack-container');
       if (timerEl) {
-        timerEl.textContent = `${updateRes.secondsLeft}s`;
+        timerEl.textContent = this.formatTimer(updateRes.secondsLeft);
+      }
+      if (timerContainer) {
+        if (updateRes.secondsLeft <= 25) {
+          timerContainer.classList.add('danger');
+        } else {
+          timerContainer.classList.remove('danger');
+        }
       }
       if (updateRes.timeAttackOver) {
         const modal = document.getElementById('time-over-modal');

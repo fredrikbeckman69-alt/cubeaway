@@ -158,10 +158,20 @@ export class ScoreManager {
     return this.gameMode;
   }
 
-  public setGameMode(mode: GameMode) {
+  /**
+   * Beräknar en mänskligt anpassad, rättvis och generös starttid för Tidspress:
+   * Grundtid (90 sekunder) + 2.5 sekunder per pil på banan!
+   * T.ex. 247 pilar = 90 + (247 * 2.5) = 708 sekunder (~11.8 minuter).
+   */
+  public calculateInitialTimeAttackSeconds(totalArrows: number): number {
+    const safeArrows = Math.max(10, totalArrows || 50);
+    return Math.max(120, Math.round(90 + safeArrows * 2.5));
+  }
+
+  public setGameMode(mode: GameMode, totalArrows?: number) {
     this.gameMode = mode;
     if (mode === 'time_attack') {
-      this.timeAttackSecondsLeft = 60;
+      this.timeAttackSecondsLeft = this.calculateInitialTimeAttackSeconds(totalArrows || 50);
       this.timeAttackActive = true;
     } else {
       this.timeAttackActive = false;
@@ -201,14 +211,14 @@ export class ScoreManager {
   /**
    * Startar en nivå. Poängen nollställs ALLTID vid varje ny nivå eller omstart.
    */
-  public startLevel(_isRestart: boolean = false) {
+  public startLevel(_isRestart: boolean = false, totalArrows?: number) {
     this.currentScore = 0;
     this.levelStartTime = performance.now();
     this.resetCombo();
     this.maxComboInCurrentLevel = 0;
 
     if (this.gameMode === 'time_attack') {
-      this.timeAttackSecondsLeft = 60;
+      this.timeAttackSecondsLeft = this.calculateInitialTimeAttackSeconds(totalArrows || 50);
       this.timeAttackActive = true;
     }
   }
@@ -265,18 +275,30 @@ export class ScoreManager {
   /**
    * Lägger till poäng när en pil skickas iväg framgångsrikt.
    */
-  public addArrowScore(cellCount: number): {
+  public addArrowScore(cellCount: number, isLinked: boolean = false): {
     pointsAdded: number;
     multiplier: number;
     totalScore: number;
+    timeBonusAdded: number;
   } {
     this.comboStreak++;
     this.maxComboInCurrentLevel = Math.max(this.maxComboInCurrentLevel, this.comboStreak);
     this.comboTimerMs = this.COMBO_WINDOW_MS;
 
+    let timeBonusAdded = 0;
     if (this.gameMode === 'time_attack' && this.timeAttackActive) {
-      // Bonus: +2 sekunder per lyckad pil (max 120 sekunder)
-      this.timeAttackSecondsLeft = Math.min(120, this.timeAttackSecondsLeft + 2.0);
+      // Generös tidsbonus per löst pil:
+      // Bas: +3.0 sekunder. Långa pilar: +4.0 sekunder. Länkade par: +6.0 sekunder!
+      let bonusSec = isLinked ? 6.0 : (cellCount >= 4 ? 4.0 : 3.0);
+
+      // Extra bonus vid snabba combo-streaks
+      if (this.comboStreak >= 8) bonusSec += 3.0;
+      else if (this.comboStreak >= 5) bonusSec += 2.0;
+      else if (this.comboStreak >= 3) bonusSec += 1.0;
+
+      timeBonusAdded = bonusSec;
+      // Inget artificiellt 120s-tak! Tillåt spelaren att bygga upp sin tidsbuffert
+      this.timeAttackSecondsLeft = Math.min(3600, this.timeAttackSecondsLeft + bonusSec);
     }
 
     const multiplier = this.gameMode === 'zen' ? 1 : Math.min(this.comboStreak, 10);
@@ -289,6 +311,7 @@ export class ScoreManager {
       pointsAdded,
       multiplier,
       totalScore: this.currentScore,
+      timeBonusAdded,
     };
   }
 
@@ -302,10 +325,8 @@ export class ScoreManager {
     // Zen-läge: Inget poängavdrag
     const penalty = this.gameMode === 'zen' ? 0 : 50;
 
-    if (this.gameMode === 'time_attack' && this.timeAttackActive) {
-      // Time Attack: 3 sekunders tidsstraff
-      this.timeAttackSecondsLeft = Math.max(0, this.timeAttackSecondsLeft - 3.0);
-    }
+    // I Tidspress rinner tiden redan iväg medan man letar och combon nollställs.
+    // Inget extra tidsavdrag dras från klockan så att spelaren inte drabbas av panik.
 
     this.currentScore = Math.max(0, this.currentScore - penalty);
 
