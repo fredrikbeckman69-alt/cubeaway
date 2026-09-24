@@ -1,5 +1,5 @@
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
-export type ArrowType = 'normal' | 'frozen' | 'linked';
+export type ArrowType = 'normal';
 export type GameMode = 'classic' | 'time_attack' | 'zen';
 
 export interface CubeCoord {
@@ -15,8 +15,6 @@ export interface Arrow {
   dir: Direction;
   color?: string;
   type?: ArrowType;
-  isFrozen?: boolean;
-  linkedWithId?: string;
 }
 
 export interface LevelConfig {

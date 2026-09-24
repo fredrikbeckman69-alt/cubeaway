@@ -442,71 +442,18 @@ export function generateCubePuzzle(levelNumber: number): {
 
   // Verifiera att pusslet är 100% lösbart
   const verifiedArrows = solveAndFilterGlobal(placedArrows, grids, gridSize);
-  const finalArrows = annotateSpecialArrows(verifiedArrows, config.levelNumber, prng);
 
   // Bygg upp det slutgiltiga gridet
   const finalGrids: (string | null)[][][] = Array.from({ length: 6 }, () =>
     Array.from({ length: gridSize }, () => Array(gridSize).fill(null))
   );
-  for (const arrow of finalArrows) {
+  for (const arrow of verifiedArrows) {
     for (const cell of arrow.cells) {
       finalGrids[cell.faceIdx][cell.r][cell.c] = arrow.id;
     }
   }
 
-  return { config, allArrows: finalArrows, initialGrids: finalGrids };
-}
-
-/**
- * Berikar pusslet med specialpilar (frysta pilar och länkade pilar) från nivå 6 och uppåt.
- * Eftersom tilldelningen sker på redan validerade lösbara pilar förblir pusslet 100% lösbart.
- */
-function annotateSpecialArrows(arrows: Arrow[], level: number, rng: PRNG): Arrow[] {
-  if (level < 6 || arrows.length < 10) {
-    return arrows.map((a) => ({ ...a, type: 'normal' as const, isFrozen: false }));
-  }
-
-  const result: Arrow[] = arrows.map((a) => ({
-    ...a,
-    type: 'normal' as const,
-    isFrozen: false,
-  }));
-
-  const candidateIndices = result
-    .map((a, idx) => ({ idx, len: a.cells.length }))
-    .filter((item) => item.len >= 3)
-    .map((item) => item.idx);
-
-  const shuffled = rng.shuffle(candidateIndices);
-
-  const maxFrozen = Math.min(5, Math.floor(1 + (level - 5) * 0.15));
-  // På höga nivåer (flaskhalsnivåer) stängs länkade pilar av så att inte par-krav låser den enkla unblocking-kedjan
-  const maxLinkedPairs = level > 700 ? 0 : Math.min(3, Math.floor(1 + (level - 5) * 0.1));
-
-  let curr = 0;
-  let frozenCount = 0;
-
-  // 1. Frysta pilar
-  while (curr < shuffled.length && frozenCount < maxFrozen) {
-    const idx = shuffled[curr++];
-    result[idx].type = 'frozen';
-    result[idx].isFrozen = true;
-    frozenCount++;
-  }
-
-  // 2. Länkade pilar i par
-  let linkedPairs = 0;
-  while (curr < shuffled.length - 1 && linkedPairs < maxLinkedPairs) {
-    const i1 = shuffled[curr++];
-    const i2 = shuffled[curr++];
-    result[i1].type = 'linked';
-    result[i2].type = 'linked';
-    result[i1].linkedWithId = result[i2].id;
-    result[i2].linkedWithId = result[i1].id;
-    linkedPairs++;
-  }
-
-  return result;
+  return { config, allArrows: verifiedArrows, initialGrids: finalGrids };
 }
 
 /**

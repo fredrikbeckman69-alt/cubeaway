@@ -567,16 +567,13 @@ class CubeAwayGame {
   private launchArrow(
     arrow: Arrow,
     clientX?: number,
-    clientY?: number,
-    isLinked: boolean = false
+    clientY?: number
   ) {
     const arrowIdx = this.allArrows.findIndex((a) => a.id === arrow.id);
     if (arrowIdx === -1) return;
 
-    if (!isLinked) {
-      sound.playArrowSuccess(scoreManager.getComboStreak());
-      if ('vibrate' in navigator) navigator.vibrate(15);
-    }
+    sound.playArrowSuccess(scoreManager.getComboStreak());
+    if ('vibrate' in navigator) navigator.vibrate(15);
 
     // Poäng & Combo
     const { pointsAdded, multiplier } = scoreManager.addArrowScore(arrow.cells.length);
@@ -608,7 +605,7 @@ class CubeAwayGame {
     }
 
     // Spawna 3D-flygande pil med den aktiva nivåns glödfärg!
-    const arrowFlyColor = isLinked ? 0xff00ea : this.currentTheme.flyingArrowColor;
+    const arrowFlyColor = this.currentTheme.flyingArrowColor;
     this.flyingManager.spawnFlyingArrow(
       arrow,
       this.gridSize,
@@ -656,60 +653,8 @@ class CubeAwayGame {
     const arrow = this.allArrows[arrowIdx];
     const canFly = canArrowFly(arrow, this.grids, this.gridSize);
 
-    // 1. Fryst pil
-    if (arrow.type === 'frozen' && arrow.isFrozen) {
-      if (!canFly) {
-        sound.playArrowBlocked();
-        this.blockedClicksCount++;
-        if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
-        const faces = Array.from(new Set(arrow.cells.map((c) => c.faceIdx)));
-        this.shakingArrow = { arrowId: arrow.id, startTime: performance.now(), faces };
-        return;
-      }
-      arrow.isFrozen = false;
-      sound.playIceBreak();
-      if ('vibrate' in navigator) navigator.vibrate(18);
-      const clickX = hit.clientX ?? window.innerWidth / 2;
-      const clickY = hit.clientY ?? window.innerHeight / 2;
-      this.spawnScoreToast('❄ Isen spräckt!', clickX, clickY, 'combo-bonus');
-      const affectedFaces = new Set(arrow.cells.map((c) => c.faceIdx));
-      affectedFaces.forEach((f) => this.renderFaceState(f));
-      return;
-    }
-
-    // 2. Länkad pil
-    if (arrow.type === 'linked' && arrow.linkedWithId) {
-      const twin = this.allArrows.find((a) => a.id === arrow.linkedWithId);
-      const twinCanFly = twin ? canArrowFly(twin, this.grids, this.gridSize) : false;
-
-      if (!canFly || !twinCanFly) {
-        sound.playArrowBlocked();
-        this.blockedClicksCount++;
-        if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
-        const combinedFaces = new Set<number>();
-        arrow.cells.forEach((c) => combinedFaces.add(c.faceIdx));
-        if (twin) twin.cells.forEach((c) => combinedFaces.add(c.faceIdx));
-        this.shakingArrow = {
-          arrowId: arrow.id,
-          startTime: performance.now(),
-          faces: Array.from(combinedFaces),
-        };
-        const clickX = hit.clientX ?? window.innerWidth / 2;
-        const clickY = hit.clientY ?? window.innerHeight / 2;
-        this.spawnScoreToast('🔗 Länkad pil blockerad!', clickX, clickY, 'penalty');
-        return;
-      }
-
-      sound.playLinkWhoosh();
-      if ('vibrate' in navigator) navigator.vibrate([15, 30, 15]);
-      this.launchArrow(arrow, hit.clientX, hit.clientY, true);
-      if (twin) this.launchArrow(twin, hit.clientX, hit.clientY, true);
-      return;
-    }
-
-    // 3. Normal pil
     if (canFly) {
-      this.launchArrow(arrow, hit.clientX, hit.clientY, false);
+      this.launchArrow(arrow, hit.clientX, hit.clientY);
     } else {
       sound.playArrowBlocked();
       this.blockedClicksCount++;
@@ -730,6 +675,7 @@ class CubeAwayGame {
         startTime: performance.now(),
         faces,
       };
+      faces.forEach((f) => this.renderFaceState(f));
     }
   }
 

@@ -96,26 +96,13 @@ export class CubeFaceRenderer {
       let glowColor = this.theme.arrowGlow;
       let coreColor = this.theme.arrowCore;
 
-      if (arrow.type === 'frozen' && arrow.isFrozen) {
-        baseColor = '#6be2ff';
-        glowColor = '#00e1ff';
-        coreColor = '#ffffff';
-      } else if (arrow.type === 'linked') {
-        glowColor = '#ff2df7';
-      }
-
       if (isShaking) {
         baseColor = '#ff1e27'; // Glödande överhettad röd vid blockering
         glowColor = '#ff0033';
         coreColor = 'rgba(255, 230, 180, 0.95)';
       } else if (isHovered) {
         baseColor = '#ffffff'; // Vitglödgad vid hovring
-        glowColor =
-          arrow.type === 'frozen' && arrow.isFrozen
-            ? '#00e1ff'
-            : this.theme.isWhiteTheme
-            ? '#38bdf8'
-            : this.theme.arrowGlow;
+        glowColor = this.theme.isWhiteTheme ? '#38bdf8' : this.theme.arrowGlow;
         coreColor = '#ffffff';
       } else if (isHint) {
         baseColor = '#ffe500'; // Guldgul vid tips
@@ -368,29 +355,6 @@ export class CubeFaceRenderer {
       ctx.closePath();
       ctx.fillStyle = coreColor;
       ctx.fill();
-
-      // Rita specialindikator på pilhuvudet (❄️ för fryst pil, 🔗 för länkad pil)
-      if (arrow.type === 'frozen' && arrow.isFrozen) {
-        ctx.save();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.round(S * 0.42)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 10;
-        ctx.fillText('❄', headCenter.x, headCenter.y);
-        ctx.restore();
-      } else if (arrow.type === 'linked') {
-        ctx.save();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.round(S * 0.36)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = '#ff00ea';
-        ctx.shadowBlur = 10;
-        ctx.fillText('🔗', headCenter.x, headCenter.y);
-        ctx.restore();
-      }
     }
     ctx.restore();
   }
