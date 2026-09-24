@@ -442,18 +442,137 @@ export function generateCubePuzzle(levelNumber: number): {
 
   // Verifiera att pusslet är 100% lösbart
   const verifiedArrows = solveAndFilterGlobal(placedArrows, grids, gridSize);
+  const finalArrows = annotateSpecialArrows(verifiedArrows, config.levelNumber, prng, gridSize);
 
   // Bygg upp det slutgiltiga gridet
   const finalGrids: (string | null)[][][] = Array.from({ length: 6 }, () =>
     Array.from({ length: gridSize }, () => Array(gridSize).fill(null))
   );
-  for (const arrow of verifiedArrows) {
+  for (const arrow of finalArrows) {
     for (const cell of arrow.cells) {
       finalGrids[cell.faceIdx][cell.r][cell.c] = arrow.id;
     }
   }
 
-  return { config, allArrows: verifiedArrows, initialGrids: finalGrids };
+  return { config, allArrows: finalArrows, initialGrids: finalGrids };
+}
+
+/**
+ * Validerar att pusslet förblir 100 % lösbart när länkade pilar kräver
+ * att båda har fri väg samtidigt för att kunna skjutas iväg.
+ */
+function canSolveWithLinks(arrows: Arrow[], gridSize: number): boolean {
+  const simGrids: (string | null)[][][] = Array.from({ length: 6 }, () =>
+    Array.from({ length: gridSize }, () => Array(gridSize).fill(null))
+  );
+  for (const a of arrows) {
+    for (const c of a.cells) {
+      simGrids[c.faceIdx][c.r][c.c] = a.id;
+    }
+  }
+
+  const remaining = new Map<string, Arrow>();
+  for (const a of arrows) remaining.set(a.id, a);
+
+  let changed = true;
+  while (changed && remaining.size > 0) {
+    changed = false;
+    for (const [id, a] of remaining.entries()) {
+      if (a.type === 'linked' && a.linkedWithId) {
+        const twin = remaining.get(a.linkedWithId);
+        if (twin && canArrowFly(a, simGrids, gridSize) && canArrowFly(twin, simGrids, gridSize)) {
+          for (const c of a.cells) simGrids[c.faceIdx][c.r][c.c] = null;
+          for (const c of twin.cells) simGrids[c.faceIdx][c.r][c.c] = null;
+          remaining.delete(id);
+          remaining.delete(twin.id);
+          changed = true;
+          break;
+        }
+      } else {
+        if (canArrowFly(a, simGrids, gridSize)) {
+          for (const c of a.cells) simGrids[c.faceIdx][c.r][c.c] = null;
+          remaining.delete(id);
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
+  return remaining.size === 0;
+}
+
+/**
+ * Berikar pusslet med frysta pilar och länkade pilar från nivå 5+.
+ * Varje länkat par valideras med en global solver så att deadlocks är omöjliga!
+ */
+function annotateSpecialArrows(
+  arrows: Arrow[],
+  level: number,
+  rng: PRNG,
+  gridSize: number
+): Arrow[] {
+  if (level < 5 || arrows.length < 12) {
+    return arrows;
+  }
+
+  const result: Arrow[] = arrows.map((a) => ({
+    ...a,
+    type: 'normal' as const,
+    isFrozen: false,
+    linkedWithId: undefined,
+  }));
+
+  // 1. Frysta pilar (1 - 4 st)
+  const maxFrozen = Math.min(4, Math.floor(1 + (level - 5) * 0.12));
+  const candidateIndices = rng.shuffle(
+    result
+      .map((a, idx) => ({ idx, len: a.cells.length }))
+      .filter((item) => item.len >= 3)
+      .map((item) => item.idx)
+  );
+
+  let frozenCount = 0;
+  let curr = 0;
+  while (curr < candidateIndices.length && frozenCount < maxFrozen) {
+    const idx = candidateIndices[curr++];
+    result[idx].type = 'frozen';
+    result[idx].isFrozen = true;
+    frozenCount++;
+  }
+
+  // 2. Länkade pilar i par (endast nivå 7 till 700, max 2 par)
+  if (level >= 7 && level <= 700) {
+    const maxPairs = Math.min(2, Math.floor(1 + (level - 7) * 0.08));
+    const pairCandidates = rng.shuffle(
+      result
+        .map((a, idx) => ({ idx, type: a.type }))
+        .filter((item) => item.type === 'normal')
+        .map((item) => item.idx)
+    );
+
+    let paired = 0;
+    for (let i = 0; i < pairCandidates.length - 1 && paired < maxPairs; i += 2) {
+      const i1 = pairCandidates[i];
+      const i2 = pairCandidates[i + 1];
+
+      result[i1].type = 'linked';
+      result[i2].type = 'linked';
+      result[i1].linkedWithId = result[i2].id;
+      result[i2].linkedWithId = result[i1].id;
+
+      if (canSolveWithLinks(result, gridSize)) {
+        paired++;
+      } else {
+        result[i1].type = 'normal';
+        result[i2].type = 'normal';
+        result[i1].linkedWithId = undefined;
+        result[i2].linkedWithId = undefined;
+      }
+    }
+  }
+
+  return result;
 }
 
 /**

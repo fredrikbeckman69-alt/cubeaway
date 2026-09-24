@@ -75,6 +75,10 @@
         </div>
 
         <div class="hud-right">
+          <button class="icon-btn guide-btn" id="guide-btn" title="Spelhandbok & Regler">
+            <span class="btn-icon">📖</span>
+            <span class="btn-label">Handbok</span>
+          </button>
           <button class="icon-btn highscore-btn" id="highscore-btn" title="Topplista & Highscore">
             <span class="btn-icon">🏆</span>
             <span class="btn-label">Topplista</span>
@@ -293,6 +297,110 @@
               <button class="btn btn-secondary btn-sm" id="sync-highscores-btn" title="Synkronisera mot globala molnlistan">🔄 Uppdatera topplista</button>
               <button class="btn btn-primary" id="close-highscore-btn" style="flex: 1;">Stäng</button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spelhandbok Modal -->
+      <div class="modal-backdrop hidden" id="guide-modal">
+        <div class="modal-card guide-card">
+          <div class="modal-header">
+            <h2>📖 Spelhandbok & Regler</h2>
+            <button class="close-btn" id="close-guide-modal">✕</button>
+          </div>
+          <div class="modal-body guide-body">
+            
+            <section class="guide-section">
+              <h3 class="guide-section-title">🎯 Vad går spelet ut på?</h3>
+              <p>Målet i <b>CubeAway</b> är att rensa hela 3D-figuren genom att skjuta ut alla slingrande pilar i rymden. Varje pil rör sig rakt framåt i den riktning dess spets pekar. En pil flyger iväg när dess utgångsväg mot figurens kant är <b>helt fri från hinder</b>!</p>
+            </section>
+
+            <section class="guide-section">
+              <h3 class="guide-section-title">🎮 Hur du styr (Kontroller)</h3>
+              <div class="guide-grid">
+                <div class="guide-item">
+                  <div class="guide-icon">👆/🖱️</div>
+                  <div>
+                    <b>Rotera figuren:</b>
+                    <p>Dra med fingret eller klicka och dra med musen för att inspektera figurens alla 6 sidor.</p>
+                  </div>
+                </div>
+                <div class="guide-item">
+                  <div class="guide-icon">🔍</div>
+                  <div>
+                    <b>Zooma:</b>
+                    <p>Nyp med två fingrar på mobilen, använd mushjulet eller tryck på knapparna <b>+ / −</b>.</p>
+                  </div>
+                </div>
+                <div class="guide-item">
+                  <div class="guide-icon">🚀</div>
+                  <div>
+                    <b>Skjut iväg pil:</b>
+                    <p>Tryck eller klicka på en pil för att skicka iväg den (om vägen framåt är fri!).</p>
+                  </div>
+                </div>
+                <div class="guide-item">
+                  <div class="guide-icon">💡</div>
+                  <div>
+                    <b>Få tips:</b>
+                    <p>Kör du fast? Tryck på <b>Tips</b>-knappen så roteras figuren och en fri pil blinkar i guld!</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="guide-section">
+              <h3 class="guide-section-title">⚡ Piltyper & Specialmekaniker</h3>
+              <div class="guide-types-list">
+                <div class="guide-type-card">
+                  <div class="guide-badge normal">🚀</div>
+                  <div class="guide-type-info">
+                    <h4>Normala Pilar</h4>
+                    <p>Skjuts iväg direkt ut i rymden så fort vägen rakt framåt mot kanten är fri.</p>
+                  </div>
+                </div>
+
+                <div class="guide-type-card">
+                  <div class="guide-badge white">⚪</div>
+                  <div class="guide-type-info">
+                    <h4>Vita Neonpilar</h4>
+                    <p>Förekommer på särskilda utmaningsbanor med monokrom, kristallklar vit neonglöd för maximal visuell skärpa.</p>
+                  </div>
+                </div>
+
+                <div class="guide-type-card highlighted-link">
+                  <div class="guide-badge link">🔗</div>
+                  <div class="guide-type-info">
+                    <h4>Länkade Pilar (Par med 🔗-symbol)</h4>
+                    <p>Dessa pilar sitter ihop i ett kosmiskt par! När du hovrar eller trycker på en av dem <b>lyser båda upp samtidigt i pulserande magenta</b> så att du ser var partnern finns. För att kunna skjutas ut måste <b>båda pilarna ha fri väg samtidigt</b> – då flyger de ut tillsammans i ett spektakulärt <i>Duo-skott</i> med extra bonuspoäng!</p>
+                  </div>
+                </div>
+
+                <div class="guide-type-card highlighted-ice">
+                  <div class="guide-badge ice">❄️</div>
+                  <div class="guide-type-info">
+                    <h4>Frysta Pilar (Inneslutna i is med ❄️-symbol)</h4>
+                    <p>Kapslade i kosmisk is. När pilens utgångsväg är fri klickar du <b>en gång för att krossa isen</b> (issplitter sprutar!). Klicka sedan <b>en gång till</b> för att skjuta iväg pilen.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="guide-section">
+              <h3 class="guide-section-title">🔥 Poäng, Combo & Tävling</h3>
+              <ul class="guide-points-list">
+                <li><b>Pilens längd:</b> Längre och mer slingrande pilar ger betydligt högre baspoäng än korta!</li>
+                <li><b>Combo Streak:</b> Skjut flera fria pilar i snabb följd utan felklick för att bygga upp combo-multiplikatorn upp till <b>5x bonus</b>!</li>
+                <li><b>Undvik felklick:</b> Klickar du på en pil som är blockerad framåt skakar den rött, combon bryts och du får ett poängavdrag (-50p).</li>
+                <li><b>Stjärnor (★★★):</b> Avklara banan med få felklick för att belönas med 1, 2 eller 3 gyllene stjärnor.</li>
+                <li><b>Global Highscore (🏆):</b> Spara dina initialer (max 3 bokstäver) i klassisk arkadstil och tävla mot andra spelare globalt på varje enskild bana och på All-Time High!</li>
+              </ul>
+            </section>
+
+            <div class="guide-footer">
+              <button class="btn btn-primary btn-large" id="guide-ok-btn" style="width: 100%;">Jag förstår – Låt oss spela! 🚀</button>
+            </div>
+
           </div>
         </div>
       </div>

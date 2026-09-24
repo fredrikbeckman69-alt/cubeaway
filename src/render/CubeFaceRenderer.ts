@@ -87,7 +87,9 @@ export class CubeFaceRenderer {
       const hasCellsOnThisFace = arrow.cells.some((c) => c.faceIdx === faceIdx);
       if (!hasCellsOnThisFace) continue;
 
-      const isHovered = arrow.id === hoveredArrowId;
+      const isHovered =
+        arrow.id === hoveredArrowId ||
+        (arrow.linkedWithId && arrow.linkedWithId === hoveredArrowId);
       const isShaking = arrow.id === shakingArrowId;
       const isHint = arrow.id === hintArrowId;
 
@@ -96,13 +98,28 @@ export class CubeFaceRenderer {
       let glowColor = this.theme.arrowGlow;
       let coreColor = this.theme.arrowCore;
 
+      if (arrow.type === 'frozen' && arrow.isFrozen) {
+        baseColor = '#38bdf8';
+        glowColor = '#00f0ff';
+        coreColor = '#e0f7ff';
+      } else if (arrow.type === 'linked') {
+        baseColor = '#ff2df7';
+        glowColor = '#ff00ea';
+      }
+
       if (isShaking) {
         baseColor = '#ff1e27'; // Glödande överhettad röd vid blockering
         glowColor = '#ff0033';
         coreColor = 'rgba(255, 230, 180, 0.95)';
       } else if (isHovered) {
         baseColor = '#ffffff'; // Vitglödgad vid hovring
-        glowColor = this.theme.isWhiteTheme ? '#38bdf8' : this.theme.arrowGlow;
+        if (arrow.type === 'frozen' && arrow.isFrozen) {
+          glowColor = '#00f0ff';
+        } else if (arrow.type === 'linked') {
+          glowColor = '#ff00ea';
+        } else {
+          glowColor = this.theme.isWhiteTheme ? '#38bdf8' : this.theme.arrowGlow;
+        }
         coreColor = '#ffffff';
       } else if (isHint) {
         baseColor = '#ffe500'; // Guldgul vid tips
@@ -355,6 +372,47 @@ export class CubeFaceRenderer {
       ctx.closePath();
       ctx.fillStyle = coreColor;
       ctx.fill();
+
+      // Rita distinkt rund cirkelbricka på pilhuvudet med hög kontrast
+      if (arrow.type === 'frozen' && arrow.isFrozen) {
+        ctx.save();
+        const badgeR = S * 0.28;
+        ctx.beginPath();
+        ctx.arc(headCenter.x, headCenter.y, badgeR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(8, 24, 44, 0.88)';
+        ctx.fill();
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(S * 0.36)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8;
+        ctx.fillText('❄', headCenter.x, headCenter.y);
+        ctx.restore();
+      } else if (arrow.type === 'linked') {
+        ctx.save();
+        const badgeR = S * 0.28;
+        ctx.beginPath();
+        ctx.arc(headCenter.x, headCenter.y, badgeR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(38, 4, 45, 0.92)';
+        ctx.fill();
+        ctx.strokeStyle = '#ff00ea';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(S * 0.34)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#ff00ea';
+        ctx.shadowBlur = 8;
+        ctx.fillText('🔗', headCenter.x, headCenter.y);
+        ctx.restore();
+      }
     }
     ctx.restore();
   }

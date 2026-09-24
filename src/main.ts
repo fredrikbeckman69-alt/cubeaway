@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { generateCubePuzzle, canArrowFly } from './puzzle/generator';
-import { Arrow, DIR_DELTA, GameMode } from './puzzle/types';
+import { Arrow, DIR_DELTA, GameMode, CUBE_FACE_NAMES_SV } from './puzzle/types';
 import { LevelTheme, getLevelTheme } from './puzzle/theme';
 import { ShapeDefinition, getLevelShape, createShapeGeometry } from './puzzle/shapes';
 import { CubeFaceRenderer } from './render/CubeFaceRenderer';
@@ -523,6 +523,10 @@ class CubeAwayGame {
         this.hoveredArrowId = null;
         if (oldArrow) {
           const faces = new Set(oldArrow.cells.map((c) => c.faceIdx));
+          if (oldArrow.linkedWithId) {
+            const oldTwin = this.allArrows.find((a) => a.id === oldArrow.linkedWithId);
+            oldTwin?.cells.forEach((c) => faces.add(c.faceIdx));
+          }
           faces.forEach((f) => this.renderFaceState(f));
         }
       }
@@ -538,8 +542,20 @@ class CubeAwayGame {
       const newArrow = this.allArrows.find((a) => a.id === arrowId);
 
       const affectedFaces = new Set<number>();
-      if (oldArrow) oldArrow.cells.forEach((cell) => affectedFaces.add(cell.faceIdx));
-      if (newArrow) newArrow.cells.forEach((cell) => affectedFaces.add(cell.faceIdx));
+      if (oldArrow) {
+        oldArrow.cells.forEach((cell) => affectedFaces.add(cell.faceIdx));
+        if (oldArrow.linkedWithId) {
+          const oldTwin = this.allArrows.find((a) => a.id === oldArrow.linkedWithId);
+          oldTwin?.cells.forEach((cell) => affectedFaces.add(cell.faceIdx));
+        }
+      }
+      if (newArrow) {
+        newArrow.cells.forEach((cell) => affectedFaces.add(cell.faceIdx));
+        if (newArrow.linkedWithId) {
+          const newTwin = this.allArrows.find((a) => a.id === newArrow.linkedWithId);
+          newTwin?.cells.forEach((cell) => affectedFaces.add(cell.faceIdx));
+        }
+      }
 
       affectedFaces.forEach((f) => this.renderFaceState(f));
     } else if (!arrowId && this.hoveredArrowId) {
@@ -547,6 +563,10 @@ class CubeAwayGame {
       this.hoveredArrowId = null;
       if (oldArrow) {
         const faces = new Set(oldArrow.cells.map((c) => c.faceIdx));
+        if (oldArrow.linkedWithId) {
+          const oldTwin = this.allArrows.find((a) => a.id === oldArrow.linkedWithId);
+          oldTwin?.cells.forEach((cell) => faces.add(cell.faceIdx));
+        }
         faces.forEach((f) => this.renderFaceState(f));
       }
     }
@@ -604,8 +624,8 @@ class CubeAwayGame {
       affectedFaces.add(cell.faceIdx);
     }
 
-    // Spawna 3D-flygande pil med den aktiva nivåns glödfärg!
-    const arrowFlyColor = this.currentTheme.flyingArrowColor;
+    // Spawna 3D-flygande pil med den aktiva nivåns glödfärg (eller lila för länkade pilar)!
+    const arrowFlyColor = arrow.type === 'linked' ? 0xff00ea : this.currentTheme.flyingArrowColor;
     this.flyingManager.spawnFlyingArrow(
       arrow,
       this.gridSize,
@@ -653,6 +673,92 @@ class CubeAwayGame {
     const arrow = this.allArrows[arrowIdx];
     const canFly = canArrowFly(arrow, this.grids, this.gridSize);
 
+    // 1. Fryst pil (innesluten i is – klicka när vägen är fri för att krossa isen!)
+    if (arrow.type === 'frozen' && arrow.isFrozen) {
+      if (!canFly) {
+        sound.playArrowBlocked();
+        this.blockedClicksCount++;
+        if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
+        const faces = Array.from(new Set(arrow.cells.map((c) => c.faceIdx)));
+        this.shakingArrow = { arrowId: arrow.id, startTime: performance.now(), faces };
+        faces.forEach((f) => this.renderFaceState(f));
+        const clickX = hit.clientX ?? window.innerWidth / 2;
+        const clickY = hit.clientY ?? window.innerHeight / 2;
+        this.spawnScoreToast('❄️ Fryst pil blockerad framåt!', clickX, clickY, 'penalty');
+        return;
+      }
+
+      // Isen krossas!
+      arrow.isFrozen = false;
+      sound.playIceBreak();
+      if ('vibrate' in navigator) navigator.vibrate(18);
+
+      const localHead = this.flyingManager.coordToLocal3D(
+        arrow.head.faceIdx,
+        arrow.head,
+        this.gridSize,
+        this.CUBE_SIZE
+      );
+      const worldHead = this.cubeGroup.localToWorld(localHead.clone());
+      this.particleManager.spawnArrowBurst(worldHead, new THREE.Vector3(0, 1, 0), 0x00f0ff, 28);
+
+      const clickX = hit.clientX ?? window.innerWidth / 2;
+      const clickY = hit.clientY ?? window.innerHeight / 2;
+      this.spawnScoreToast('❄️ Isen spräckt! Tryck igen för att skjuta iväg! ⚡', clickX, clickY, 'combo-bonus');
+
+      const affectedFaces = new Set(arrow.cells.map((c) => c.faceIdx));
+      affectedFaces.forEach((f) => this.renderFaceState(f));
+      return;
+    }
+
+    // 2. Länkad pil (par – båda måste ha fri väg för att skjutas iväg som ett duoskott)
+    if (arrow.type === 'linked' && arrow.linkedWithId) {
+      const twin = this.allArrows.find((a) => a.id === arrow.linkedWithId);
+      const twinCanFly = twin ? canArrowFly(twin, this.grids, this.gridSize) : false;
+
+      if (!canFly || !twinCanFly) {
+        sound.playArrowBlocked();
+        this.blockedClicksCount++;
+        if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
+
+        const combinedFaces = new Set<number>();
+        arrow.cells.forEach((c) => combinedFaces.add(c.faceIdx));
+        if (twin) twin.cells.forEach((c) => combinedFaces.add(c.faceIdx));
+
+        this.shakingArrow = {
+          arrowId: arrow.id,
+          startTime: performance.now(),
+          faces: Array.from(combinedFaces),
+        };
+        combinedFaces.forEach((f) => this.renderFaceState(f));
+
+        const clickX = hit.clientX ?? window.innerWidth / 2;
+        const clickY = hit.clientY ?? window.innerHeight / 2;
+
+        if (!canFly && !twinCanFly) {
+          this.spawnScoreToast('🔗 Båda länkade pilarna är blockerade!', clickX, clickY, 'penalty');
+        } else if (!canFly) {
+          this.spawnScoreToast('🔗 Denna pil är blockerad framåt!', clickX, clickY, 'penalty');
+        } else {
+          const twinFaceName = twin ? CUBE_FACE_NAMES_SV[twin.head.faceIdx] : 'annan sida';
+          this.spawnScoreToast(`🔗 Länkad pil! Dess partner på ${twinFaceName} är blockerad!`, clickX, clickY, 'combo-bonus');
+        }
+        return;
+      }
+
+      // Båda länkade pilarna har fri väg! Skjut iväg båda!
+      sound.playLinkWhoosh();
+      if ('vibrate' in navigator) navigator.vibrate([15, 30, 15]);
+      const clickX = hit.clientX ?? window.innerWidth / 2;
+      const clickY = hit.clientY ?? window.innerHeight / 2;
+      this.spawnScoreToast('🔗 DUO-SKOTT! Länkade pilar fria! 🚀', clickX, clickY, 'combo-bonus');
+
+      this.launchArrow(arrow, hit.clientX, hit.clientY);
+      if (twin) this.launchArrow(twin, hit.clientX, hit.clientY);
+      return;
+    }
+
+    // 3. Normal pil
     if (canFly) {
       this.launchArrow(arrow, hit.clientX, hit.clientY);
     } else {
@@ -680,7 +786,16 @@ class CubeAwayGame {
   }
 
   private giveHint() {
-    const hint = this.allArrows.find((a) => canArrowFly(a, this.grids, this.gridSize));
+    const hint = this.allArrows.find((a) => {
+      if (a.type === 'linked' && a.linkedWithId) {
+        const twin = this.allArrows.find((t) => t.id === a.linkedWithId);
+        return (
+          canArrowFly(a, this.grids, this.gridSize) &&
+          (twin ? canArrowFly(twin, this.grids, this.gridSize) : false)
+        );
+      }
+      return canArrowFly(a, this.grids, this.gridSize);
+    });
 
     if (hint) {
       const prevHintArrow = this.allArrows.find((a) => a.id === this.hintArrowId);
@@ -1001,9 +1116,26 @@ class CubeAwayGame {
       document.getElementById('time-over-modal')?.classList.add('hidden');
     });
 
+    const guideModal = document.getElementById('guide-modal');
+    const openGuideModal = () => {
+      guideModal?.classList.remove('hidden');
+    };
+    const closeGuideModal = () => {
+      guideModal?.classList.add('hidden');
+    };
+    document.getElementById('guide-btn')?.addEventListener('click', openGuideModal);
+    document.getElementById('close-guide-modal')?.addEventListener('click', closeGuideModal);
+    document.getElementById('guide-ok-btn')?.addEventListener('click', closeGuideModal);
+    setupBackdropDismiss('guide-modal', closeGuideModal);
+
     // Klicka bort öppna modaler med Escape-tangenten
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        const gModal = document.getElementById('guide-modal');
+        if (gModal && !gModal.classList.contains('hidden')) {
+          closeGuideModal();
+          return;
+        }
         const winModal = document.getElementById('win-modal');
         if (winModal && !winModal.classList.contains('hidden')) {
           this.hideWinModal();

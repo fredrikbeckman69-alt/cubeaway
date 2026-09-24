@@ -1,5 +1,5 @@
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
-export type ArrowType = 'normal';
+export type ArrowType = 'normal' | 'frozen' | 'linked';
 export type GameMode = 'classic' | 'time_attack' | 'zen';
 
 export interface CubeCoord {
@@ -15,6 +15,8 @@ export interface Arrow {
   dir: Direction;
   color?: string;
   type?: ArrowType;
+  isFrozen?: boolean;
+  linkedWithId?: string;
 }
 
 export interface LevelConfig {
@@ -32,3 +34,11 @@ export const DIR_DELTA: Record<Direction, { dr: number; dc: number }> = {
 };
 
 export const CUBE_FACE_NAMES = ['right', 'left', 'top', 'bottom', 'front', 'back'] as const;
+export const CUBE_FACE_NAMES_SV = [
+  'högra sidan',
+  'vänstra sidan',
+  'toppen',
+  'botten',
+  'framsidan',
+  'baksidan',
+] as const;
