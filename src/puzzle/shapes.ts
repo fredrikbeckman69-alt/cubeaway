@@ -2,12 +2,12 @@ import * as THREE from 'three';
 
 export type ShapeType =
   | 'cube'
-  | 'monolith'
-  | 'platform'
-  | 'pyramid'
-  | 'beam'
   | 'crystal'
-  | 'pylon';
+  | 'podium'
+  | 'pyramid'
+  | 'prism'
+  | 'obelisk'
+  | 'monolith';
 
 export interface ShapeDefinition {
   type: ShapeType;
@@ -29,76 +29,79 @@ export const SHAPE_DEFINITIONS: Record<ShapeType, ShapeDefinition> = {
     sizeX: 3.8,
     sizeY: 3.8,
     sizeZ: 3.8,
-    cameraDistance: 6.0,
-  },
-  monolith: {
-    type: 'monolith',
-    name: 'Kosmisk Monolit',
-    description: 'Ett ståtligt resande torn med vertikal elegans',
-    sizeX: 2.6,
-    sizeY: 5.4,
-    sizeZ: 2.6,
-    cameraDistance: 7.2,
-  },
-  platform: {
-    type: 'platform',
-    name: 'Rymdplattform',
-    description: 'En vidsträckt svävande högteknologisk platta',
-    sizeX: 5.2,
-    sizeY: 1.8,
-    sizeZ: 5.2,
-    cameraDistance: 6.8,
-  },
-  pyramid: {
-    type: 'pyramid',
-    name: 'Trunkerad Pyramid',
-    description: 'Ett forntida-futuristiskt tempel med avfasad topp',
-    sizeX: 4.4,
-    sizeY: 3.6,
-    sizeZ: 4.4,
-    topScale: 0.55,
-    cameraDistance: 6.5,
-  },
-  beam: {
-    type: 'beam',
-    name: 'Transportbalk',
-    description: 'En långsträckt industriell fraktcontainer',
-    sizeX: 5.4,
-    sizeY: 2.8,
-    sizeZ: 2.8,
-    cameraDistance: 7.0,
+    cameraDistance: 5.8,
   },
   crystal: {
     type: 'crystal',
     name: 'Diamant-Kristall',
     description: 'En dubbel-avfasad skimrande rymdjuvel',
-    sizeX: 4.2,
-    sizeY: 4.2,
-    sizeZ: 4.2,
-    topScale: 0.65,
-    bottomScale: 0.65,
-    cameraDistance: 6.4,
+    sizeX: 3.8,
+    sizeY: 3.8,
+    sizeZ: 3.8,
+    topScale: 0.82,
+    bottomScale: 0.82,
+    cameraDistance: 5.8,
   },
-  pylon: {
-    type: 'pylon',
-    name: 'Kosmisk Pylon',
-    description: 'En hög avsmalnande cyber-spira',
-    sizeX: 2.6,
-    sizeY: 5.6,
-    sizeZ: 2.6,
-    topScale: 0.6,
-    cameraDistance: 7.4,
+  podium: {
+    type: 'podium',
+    name: 'Kosmisk Plattform',
+    description: 'En vidsträckt svävande kommandobrygga',
+    sizeX: 4.1,
+    sizeY: 3.5,
+    sizeZ: 4.1,
+    topScale: 0.88,
+    cameraDistance: 5.8,
+  },
+  pyramid: {
+    type: 'pyramid',
+    name: 'Trunkerad Pyramid',
+    description: 'Ett forntida-futuristiskt tempel med avfasad topp',
+    sizeX: 3.9,
+    sizeY: 3.6,
+    sizeZ: 3.9,
+    topScale: 0.80,
+    cameraDistance: 5.8,
+  },
+  prism: {
+    type: 'prism',
+    name: 'Rymdkapsel',
+    description: 'En horisontellt facetterad rymdkapsel',
+    sizeX: 4.2,
+    sizeY: 3.5,
+    sizeZ: 3.5,
+    topScale: 0.88,
+    bottomScale: 0.88,
+    cameraDistance: 5.9,
+  },
+  obelisk: {
+    type: 'obelisk',
+    name: 'Kosmisk Obelisk',
+    description: 'Ett elegant avsmalnande cyber-monument',
+    sizeX: 3.5,
+    sizeY: 4.2,
+    sizeZ: 3.5,
+    topScale: 0.82,
+    cameraDistance: 6.0,
+  },
+  monolith: {
+    type: 'monolith',
+    name: 'Cyber-Monolit',
+    description: 'Ett resligt och ståtligt rymdtorn',
+    sizeX: 3.4,
+    sizeY: 4.3,
+    sizeZ: 3.4,
+    cameraDistance: 6.0,
   },
 };
 
 export const SHAPE_ROTATION: ShapeType[] = [
   'cube',
-  'monolith',
-  'platform',
-  'pyramid',
-  'beam',
   'crystal',
-  'pylon',
+  'podium',
+  'pyramid',
+  'prism',
+  'obelisk',
+  'monolith',
 ];
 
 export function getLevelShape(level: number): ShapeDefinition {

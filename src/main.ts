@@ -126,21 +126,23 @@ class CubeAwayGame {
       antialias: true,
       powerPreference: 'high-performance',
     });
-    this.webglRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    this.webglRenderer.setPixelRatio(pixelRatio);
     this.webglRenderer.setSize(window.innerWidth, window.innerHeight);
     this.webglRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.webglRenderer.toneMappingExposure = 0.95;
+    this.webglRenderer.toneMappingExposure = 1.0;
 
-    // Post-processing: UnrealBloomPass kalibrerad för distinkt neonglöd utan överexponering
+    // Post-processing: UnrealBloomPass kalibrerad för distinkt, knivskarp neonglöd utan suddighet
     this.composer = new EffectComposer(this.webglRenderer);
+    this.composer.setPixelRatio(pixelRatio);
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
 
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.60, // Elegant, kontrollerad glödstyrka
-      0.40, // Fokuserad glödradie runt pilarna
-      0.60  // Tröskel: Den mörka kubytan förblir skarp och mörk, medan vita och neonfärgade pilar glöder
+      0.35, // Distinkt, kristallklar glödstyrka
+      0.20, // Tät, fokuserad glödradie som inte smetar ut linjerna
+      0.72  // Hög tröskel: polyederytan och linjerna förblir 100 % knivskarpa
     );
     this.composer.addPass(this.bloomPass);
 
@@ -1260,6 +1262,9 @@ class CubeAwayGame {
     }
 
     this.camera.updateProjectionMatrix();
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    this.webglRenderer.setPixelRatio(pixelRatio);
+    this.composer.setPixelRatio(pixelRatio);
     this.webglRenderer.setSize(width, height);
     this.composer.setSize(width, height);
     this.bloomPass.resolution.set(width, height);

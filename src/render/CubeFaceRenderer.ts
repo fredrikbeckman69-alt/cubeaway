@@ -22,9 +22,10 @@ export class CubeFaceRenderer {
       this.ctxs.push(ctx);
 
       const texture = new THREE.CanvasTexture(canvas);
-      texture.minFilter = THREE.LinearFilter;
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
       texture.magFilter = THREE.LinearFilter;
-      texture.generateMipmaps = false;
+      texture.anisotropy = 16;
       this.textures.push(texture);
     }
   }
@@ -322,7 +323,7 @@ export class CubeFaceRenderer {
     // --- PASS 1: Yttre glödande neon-kropp ---
     ctx.save();
     ctx.shadowColor = glowColor;
-    ctx.shadowBlur = isHighlighted ? Math.max(12, S * 0.45) : Math.max(5, S * 0.18);
+    ctx.shadowBlur = isHighlighted ? Math.max(16, S * 0.45) : 0;
 
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
