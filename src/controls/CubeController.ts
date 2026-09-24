@@ -71,6 +71,14 @@ export class CubeController {
     this.gridSize = gridSize;
   }
 
+  public setTargetDistance(distance: number) {
+    this.targetDistance = THREE.MathUtils.clamp(
+      distance,
+      this.minDistance,
+      this.maxDistance
+    );
+  }
+
   private updatePointerPos(clientX: number, clientY: number) {
     const rect = this.domElement.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {

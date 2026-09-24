@@ -28,55 +28,127 @@ interface SlitheringArrowInstance {
 export class FlyingArrowManager {
   private parentGroup: THREE.Group;
   private slitheringArrows: SlitheringArrowInstance[] = [];
+  private geometry: THREE.BufferGeometry | null = null;
 
   constructor(parentGroup: THREE.Group) {
     this.parentGroup = parentGroup;
   }
 
-  public getFaceVectors(faceIdx: number): {
+  public setGeometry(geometry: THREE.BufferGeometry | null) {
+    this.geometry = geometry;
+  }
+
+  public getPointAndNormal(
+    faceIdx: number,
+    u: number,
+    v: number
+  ): {
+    p: THREE.Vector3;
     normal: THREE.Vector3;
     tangentU: THREE.Vector3;
     tangentV: THREE.Vector3;
   } {
-    switch (faceIdx) {
-      case 0: // +X (Right)
-        return {
-          normal: new THREE.Vector3(1, 0, 0),
-          tangentU: new THREE.Vector3(0, 0, -1),
-          tangentV: new THREE.Vector3(0, 1, 0),
-        };
-      case 1: // -X (Left)
-        return {
-          normal: new THREE.Vector3(-1, 0, 0),
-          tangentU: new THREE.Vector3(0, 0, 1),
-          tangentV: new THREE.Vector3(0, 1, 0),
-        };
-      case 2: // +Y (Top)
-        return {
-          normal: new THREE.Vector3(0, 1, 0),
-          tangentU: new THREE.Vector3(1, 0, 0),
-          tangentV: new THREE.Vector3(0, 0, -1),
-        };
-      case 3: // -Y (Bottom)
-        return {
-          normal: new THREE.Vector3(0, -1, 0),
-          tangentU: new THREE.Vector3(1, 0, 0),
-          tangentV: new THREE.Vector3(0, 0, 1),
-        };
-      case 4: // +Z (Front)
-        return {
-          normal: new THREE.Vector3(0, 0, 1),
-          tangentU: new THREE.Vector3(1, 0, 0),
-          tangentV: new THREE.Vector3(0, 1, 0),
-        };
-      case 5: // -Z (Back)
-      default:
-        return {
-          normal: new THREE.Vector3(0, 0, -1),
-          tangentU: new THREE.Vector3(-1, 0, 0),
-          tangentV: new THREE.Vector3(0, 1, 0),
-        };
+    if (this.geometry) {
+      const pos = this.geometry.attributes.position;
+      const i0 = faceIdx * 4 + 0;
+      const i1 = faceIdx * 4 + 1;
+      const i2 = faceIdx * 4 + 2;
+      const i3 = faceIdx * 4 + 3;
+
+      const v0 = new THREE.Vector3(pos.getX(i0), pos.getY(i0), pos.getZ(i0));
+      const v1 = new THREE.Vector3(pos.getX(i1), pos.getY(i1), pos.getZ(i1));
+      const v2 = new THREE.Vector3(pos.getX(i2), pos.getY(i2), pos.getZ(i2));
+      const v3 = new THREE.Vector3(pos.getX(i3), pos.getY(i3), pos.getZ(i3));
+
+      const p = new THREE.Vector3()
+        .addScaledVector(v0, (1 - u) * v)
+        .addScaledVector(v1, u * v)
+        .addScaledVector(v2, (1 - u) * (1 - v))
+        .addScaledVector(v3, u * (1 - v));
+
+      const du = new THREE.Vector3()
+        .addScaledVector(v1.clone().sub(v0), v)
+        .addScaledVector(v3.clone().sub(v2), 1 - v);
+
+      const dv = new THREE.Vector3()
+        .addScaledVector(v0.clone().sub(v2), 1 - u)
+        .addScaledVector(v1.clone().sub(v3), u);
+
+      const normal = new THREE.Vector3().crossVectors(du, dv).normalize();
+      const tangentU = du.clone().normalize();
+      const tangentV = dv.clone().normalize();
+
+      return { p, normal, tangentU, tangentV };
     }
+
+    // Fallback for uniform cube of default size 3.8
+    const cubeSize = 3.8;
+    const half = cubeSize / 2;
+    const nx = (u - 0.5) * cubeSize;
+    const ny = (v - 0.5) * cubeSize;
+    let p: THREE.Vector3;
+    let normal: THREE.Vector3;
+    let tangentU: THREE.Vector3;
+    let tangentV: THREE.Vector3;
+
+    switch (faceIdx) {
+      case 0: // +X
+        p = new THREE.Vector3(half, ny, -nx);
+        normal = new THREE.Vector3(1, 0, 0);
+        tangentU = new THREE.Vector3(0, 0, -1);
+        tangentV = new THREE.Vector3(0, 1, 0);
+        break;
+      case 1: // -X
+        p = new THREE.Vector3(-half, ny, nx);
+        normal = new THREE.Vector3(-1, 0, 0);
+        tangentU = new THREE.Vector3(0, 0, 1);
+        tangentV = new THREE.Vector3(0, 1, 0);
+        break;
+      case 2: // +Y
+        p = new THREE.Vector3(nx, half, -ny);
+        normal = new THREE.Vector3(0, 1, 0);
+        tangentU = new THREE.Vector3(1, 0, 0);
+        tangentV = new THREE.Vector3(0, 0, -1);
+        break;
+      case 3: // -Y
+        p = new THREE.Vector3(nx, -half, ny);
+        normal = new THREE.Vector3(0, -1, 0);
+        tangentU = new THREE.Vector3(1, 0, 0);
+        tangentV = new THREE.Vector3(0, 0, 1);
+        break;
+      case 4: // +Z
+        p = new THREE.Vector3(nx, ny, half);
+        normal = new THREE.Vector3(0, 0, 1);
+        tangentU = new THREE.Vector3(1, 0, 0);
+        tangentV = new THREE.Vector3(0, 1, 0);
+        break;
+      case 5: // -Z
+      default:
+        p = new THREE.Vector3(-nx, ny, -half);
+        normal = new THREE.Vector3(0, 0, -1);
+        tangentU = new THREE.Vector3(-1, 0, 0);
+        tangentV = new THREE.Vector3(0, 1, 0);
+        break;
+    }
+
+    return { p, normal, tangentU, tangentV };
+  }
+
+  public getFaceVectors(
+    faceIdx: number,
+    u: number = 0.5,
+    v: number = 0.5
+  ): {
+    normal: THREE.Vector3;
+    tangentU: THREE.Vector3;
+    tangentV: THREE.Vector3;
+  } {
+    const res = this.getPointAndNormal(faceIdx, u, v);
+    return {
+      normal: res.normal,
+      tangentU: res.tangentU,
+      tangentV: res.tangentV,
+    };
   }
 
   public coordToLocal3D(
@@ -89,41 +161,20 @@ export class FlyingArrowManager {
     let r: number;
     let c: number;
     let gridSize: number;
-    let cubeSize: number;
 
     if (typeof coordOrR === 'object') {
       r = coordOrR.r;
       c = coordOrR.c;
       gridSize = cOrGridSize;
-      cubeSize = gridSizeOrCubeSize!;
     } else {
       r = coordOrR;
       c = cOrGridSize;
       gridSize = gridSizeOrCubeSize!;
-      cubeSize = maybeCubeSize!;
     }
 
-    const half = cubeSize / 2;
     const u = (c + 0.5) / gridSize;
     const v = 1 - (r + 0.5) / gridSize;
-    const nx = (u - 0.5) * cubeSize;
-    const ny = (v - 0.5) * cubeSize;
-
-    switch (faceIdx) {
-      case 0: // +X
-        return new THREE.Vector3(half, ny, -nx);
-      case 1: // -X
-        return new THREE.Vector3(-half, ny, nx);
-      case 2: // +Y
-        return new THREE.Vector3(nx, half, -ny);
-      case 3: // -Y
-        return new THREE.Vector3(nx, -half, ny);
-      case 4: // +Z
-        return new THREE.Vector3(nx, ny, half);
-      case 5: // -Z
-      default:
-        return new THREE.Vector3(-nx, ny, -half);
-    }
+    return this.getPointAndNormal(faceIdx, u, v).p;
   }
 
   private getFaceFixedAxis(
@@ -155,6 +206,45 @@ export class FlyingArrowManager {
     faceB: number,
     cubeSize: number
   ): THREE.Vector3 {
+    if (this.geometry) {
+      const pos = this.geometry.attributes.position;
+      const getVerts = (f: number) => [
+        new THREE.Vector3(pos.getX(f * 4 + 0), pos.getY(f * 4 + 0), pos.getZ(f * 4 + 0)),
+        new THREE.Vector3(pos.getX(f * 4 + 1), pos.getY(f * 4 + 1), pos.getZ(f * 4 + 1)),
+        new THREE.Vector3(pos.getX(f * 4 + 2), pos.getY(f * 4 + 2), pos.getZ(f * 4 + 2)),
+        new THREE.Vector3(pos.getX(f * 4 + 3), pos.getY(f * 4 + 3), pos.getZ(f * 4 + 3)),
+      ];
+
+      const vertsA = getVerts(faceA);
+      const vertsB = getVerts(faceB);
+      const shared: THREE.Vector3[] = [];
+      for (const vA of vertsA) {
+        for (const vB of vertsB) {
+          if (vA.distanceTo(vB) < 0.001) {
+            if (!shared.some((s) => s.distanceTo(vA) < 0.001)) {
+              shared.push(vA);
+            }
+          }
+        }
+      }
+
+      if (shared.length >= 2) {
+        const e0 = shared[0];
+        const e1 = shared[1];
+        const edgeDir = e1.clone().sub(e0);
+        const edgeLenSq = edgeDir.lengthSq();
+        if (edgeLenSq > 0.00001) {
+          const mid = pA.clone().add(pB).multiplyScalar(0.5);
+          const t = THREE.MathUtils.clamp(
+            mid.clone().sub(e0).dot(edgeDir) / edgeLenSq,
+            0,
+            1
+          );
+          return e0.clone().addScaledVector(edgeDir, t);
+        }
+      }
+    }
+
     const fixA = this.getFaceFixedAxis(faceA, cubeSize);
     const fixB = this.getFaceFixedAxis(faceB, cubeSize);
     const pEdge = new THREE.Vector3();
@@ -238,7 +328,9 @@ export class FlyingArrowManager {
 
     for (let i = 0; i < cells.length; i++) {
       const c = cells[i];
-      const norm = this.getFaceVectors(c.faceIdx).normal;
+      const u = (c.c + 0.5) / gridSize;
+      const v = 1 - (c.r + 0.5) / gridSize;
+      const norm = this.getFaceVectors(c.faceIdx, u, v).normal;
       const pos = this.coordToLocal3D(c.faceIdx, c.r, c.c, gridSize, cubeSize).addScaledVector(
         norm,
         elevation
@@ -247,7 +339,9 @@ export class FlyingArrowManager {
       if (i > 0 && cells[i - 1].faceIdx !== c.faceIdx) {
         // Korsar kant mellan två olika kubsidor
         const prevC = cells[i - 1];
-        const prevNorm = this.getFaceVectors(prevC.faceIdx).normal;
+        const prevU = (prevC.c + 0.5) / gridSize;
+        const prevV = 1 - (prevC.r + 0.5) / gridSize;
+        const prevNorm = this.getFaceVectors(prevC.faceIdx, prevU, prevV).normal;
         const prevPosRaw = this.coordToLocal3D(prevC.faceIdx, prevC.r, prevC.c, gridSize, cubeSize);
         const curPosRaw = this.coordToLocal3D(c.faceIdx, c.r, c.c, gridSize, cubeSize);
 
@@ -268,7 +362,9 @@ export class FlyingArrowManager {
     // 2. Lägg till punkter från huvudet framåt mot kanten av sidan
     const headCell = cells[cells.length - 1];
     const headFace = headCell.faceIdx;
-    const headVecs = this.getFaceVectors(headFace);
+    const headU = (headCell.c + 0.5) / gridSize;
+    const headV = 1 - (headCell.r + 0.5) / gridSize;
+    const headVecs = this.getFaceVectors(headFace, headU, headV);
     const headNormal = headVecs.normal;
     const { dr, dc } = DIR_DELTA[arrow.dir];
 
@@ -291,11 +387,14 @@ export class FlyingArrowManager {
     let lastC = headCell.c;
 
     while (currR >= 0 && currR < gridSize && currC >= 0 && currC < gridSize) {
+      const rayU = (currC + 0.5) / gridSize;
+      const rayV = 1 - (currR + 0.5) / gridSize;
+      const rayNorm = this.getFaceVectors(headFace, rayU, rayV).normal;
       const pRay = this.coordToLocal3D(headFace, currR, currC, gridSize, cubeSize).addScaledVector(
-        headNormal,
+        rayNorm,
         elevation
       );
-      cellPath.push({ pos: pRay, normal: headNormal, faceIdx: headFace });
+      cellPath.push({ pos: pRay, normal: rayNorm, faceIdx: headFace });
       lastR = currR;
       lastC = currC;
       currR += dr;
@@ -308,11 +407,15 @@ export class FlyingArrowManager {
     const exitC =
       arrow.dir === 'LEFT' ? -0.5 : arrow.dir === 'RIGHT' ? gridSize - 0.5 : lastC;
 
+    const exitU = (exitC + 0.5) / gridSize;
+    const exitV = 1 - (exitR + 0.5) / gridSize;
+    const exitNorm = this.getFaceVectors(headFace, exitU, exitV).normal;
+
     const pExit = this.coordToLocal3D(headFace, exitR, exitC, gridSize, cubeSize).addScaledVector(
-      headNormal,
+      exitNorm,
       elevation
     );
-    cellPath.push({ pos: pExit, normal: headNormal, faceIdx: headFace });
+    cellPath.push({ pos: pExit, normal: exitNorm, faceIdx: headFace });
 
     // 3. Applicera mjuk filleting (rundade hörn) för alla svängar på samma kubsida
     for (let i = 0; i < cellPath.length; i++) {
@@ -364,7 +467,7 @@ export class FlyingArrowManager {
     const spaceSteps = [1.0, 2.5, 5.0, 8.0, 11.5];
     for (const dist of spaceSteps) {
       const pSpace = pExit.clone().addScaledVector(flyDir, dist);
-      rawPoints.push({ pos: pSpace, normal: headNormal });
+      rawPoints.push({ pos: pSpace, normal: exitNorm });
     }
 
     // 5. Bygg waypoints med ackumulerad distans och hitta exakt dTailExit

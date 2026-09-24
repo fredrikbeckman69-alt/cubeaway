@@ -5,6 +5,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { generateCubePuzzle, canArrowFly } from './puzzle/generator';
 import { Arrow, DIR_DELTA, GameMode } from './puzzle/types';
 import { LevelTheme, getLevelTheme } from './puzzle/theme';
+import { ShapeDefinition, getLevelShape, createShapeGeometry } from './puzzle/shapes';
 import { CubeFaceRenderer } from './render/CubeFaceRenderer';
 import { FlyingArrowManager } from './render/FlyingArrowManager';
 import { ParticleManager } from './render/ParticleManager';
@@ -26,8 +27,9 @@ class CubeAwayGame {
   private dirLight1!: THREE.DirectionalLight;
   private dirLight2!: THREE.DirectionalLight;
 
-  // Färgtema
+  // Färgtema & Geometrisk form
   private currentTheme!: LevelTheme;
+  private currentShape!: ShapeDefinition;
 
   // Renderers & Managers
   private faceRenderer: CubeFaceRenderer;
@@ -231,7 +233,8 @@ class CubeAwayGame {
 
 
   private createCubeMesh() {
-    const geo = new THREE.BoxGeometry(this.CUBE_SIZE, this.CUBE_SIZE, this.CUBE_SIZE);
+    this.currentShape = getLevelShape(this.currentLevel);
+    const geo = createShapeGeometry(this.currentShape);
     const materials = this.faceRenderer.textures.map(
       (tex) =>
         new THREE.MeshStandardMaterial({
@@ -243,18 +246,26 @@ class CubeAwayGame {
 
     this.cubeMesh = new THREE.Mesh(geo, materials);
     this.cubeGroup.add(this.cubeMesh);
+    this.flyingManager.setGeometry(geo);
   }
 
   public loadLevel(levelNum: number, isRestart: boolean = false) {
     this.currentLevel = Math.max(1, Math.min(1000, Math.floor(levelNum)));
     localStorage.setItem('cubeaway_level', this.currentLevel.toString());
 
-    // 1. Hämta och applicera unikt glödande tema för den nya nivån
+    // 1. Hämta form och tema för den nya nivån
+    this.currentShape = getLevelShape(this.currentLevel);
     this.currentTheme = getLevelTheme(this.currentLevel);
     this.faceRenderer.setTheme(this.currentTheme);
 
-    // 2. Uppdatera kubsidornas 3D-material
+    // 2. Uppdatera 3D-geometrin för vald form samt material
     if (this.cubeMesh) {
+      this.cubeMesh.geometry.dispose();
+      this.cubeMesh.geometry = createShapeGeometry(this.currentShape);
+      this.flyingManager.setGeometry(this.cubeMesh.geometry);
+      this.controller.setCubeMesh(this.cubeMesh, this.gridSize);
+      this.controller.setTargetDistance(this.currentShape.cameraDistance);
+
       const mats = this.cubeMesh.material as THREE.MeshStandardMaterial[];
       mats.forEach((mat) => {
         mat.needsUpdate = true;
@@ -467,7 +478,12 @@ class CubeAwayGame {
   private updateHUD() {
     const levelText = document.getElementById('level-text');
     if (levelText) {
-      levelText.textContent = `Nivå ${this.currentLevel} • ${this.currentTheme.name}`;
+      levelText.textContent = `Nivå ${this.currentLevel} • ${this.currentShape.name}`;
+    }
+
+    const levelBadge = document.getElementById('level-display');
+    if (levelBadge) {
+      levelBadge.title = `${this.currentShape.name} (${this.currentShape.description}) • ${this.currentTheme.name}`;
     }
 
     const levelStars = document.getElementById('level-stars');
@@ -838,7 +854,7 @@ class CubeAwayGame {
     const modal = document.getElementById('win-modal');
     const desc = document.getElementById('win-desc');
     if (desc) {
-      desc.textContent = `Otroligt snyggt! Nivå ${this.currentLevel} är avklarad.`;
+      desc.textContent = `Otroligt snyggt! Nivå ${this.currentLevel} (${this.currentShape.name}) är avklarad.`;
     }
 
     // Animera stjärnor med ljud
