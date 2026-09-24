@@ -6,6 +6,7 @@ import { generateCubePuzzle, canArrowFly } from './puzzle/generator';
 import { Arrow, DIR_DELTA, GameMode, CUBE_FACE_NAMES_SV } from './puzzle/types';
 import { LevelTheme, getLevelTheme } from './puzzle/theme';
 import { ShapeDefinition, getLevelShape, createShapeGeometry } from './puzzle/shapes';
+import { CelestialBody, getCelestialBody } from './puzzle/celestialBodies';
 import { CubeFaceRenderer } from './render/CubeFaceRenderer';
 import { FlyingArrowManager } from './render/FlyingArrowManager';
 import { ParticleManager } from './render/ParticleManager';
@@ -27,9 +28,10 @@ class CubeAwayGame {
   private dirLight1!: THREE.DirectionalLight;
   private dirLight2!: THREE.DirectionalLight;
 
-  // Färgtema & Geometrisk form
+  // Färgtema, Geometrisk form & Himlakropp
   private currentTheme!: LevelTheme;
   private currentShape!: ShapeDefinition;
+  private currentCelestialBody!: CelestialBody;
 
   // Renderers & Managers
   private faceRenderer: CubeFaceRenderer;
@@ -255,8 +257,9 @@ class CubeAwayGame {
     this.currentLevel = Math.max(1, Math.min(1000, Math.floor(levelNum)));
     localStorage.setItem('cubeaway_level', this.currentLevel.toString());
 
-    // 1. Hämta form och tema för den nya nivån
+    // 1. Hämta form, himlakropp och tema för den nya nivån
     this.currentShape = getLevelShape(this.currentLevel);
+    this.currentCelestialBody = getCelestialBody(this.currentLevel);
     this.currentTheme = getLevelTheme(this.currentLevel);
     this.faceRenderer.setTheme(this.currentTheme);
 
@@ -480,12 +483,22 @@ class CubeAwayGame {
   private updateHUD() {
     const levelText = document.getElementById('level-text');
     if (levelText) {
-      levelText.textContent = `Nivå ${this.currentLevel} • ${this.currentShape.name}`;
+      levelText.textContent = `Nivå ${this.currentLevel} • ${this.currentCelestialBody.name}`;
+    }
+
+    const celestialBtn = document.getElementById('celestial-explore-btn') as HTMLAnchorElement;
+    const celestialName = document.getElementById('celestial-explore-name');
+    if (celestialBtn) {
+      celestialBtn.href = this.currentCelestialBody.url;
+      celestialBtn.title = `Utforska ${this.currentCelestialBody.name} (${this.currentCelestialBody.category}) i universum via ${this.currentCelestialBody.sourceName}`;
+    }
+    if (celestialName) {
+      celestialName.textContent = this.currentCelestialBody.name;
     }
 
     const levelBadge = document.getElementById('level-display');
     if (levelBadge) {
-      levelBadge.title = `${this.currentShape.name} (${this.currentShape.description}) • ${this.currentTheme.name}`;
+      levelBadge.title = `${this.currentCelestialBody.name} (${this.currentCelestialBody.category}) • ${this.currentShape.name} • ${this.currentTheme.name}`;
     }
 
     const levelStars = document.getElementById('level-stars');
@@ -917,7 +930,22 @@ class CubeAwayGame {
     const modal = document.getElementById('win-modal');
     const desc = document.getElementById('win-desc');
     if (desc) {
-      desc.textContent = `Otroligt snyggt! Nivå ${this.currentLevel} (${this.currentShape.name}) är avklarad.`;
+      desc.textContent = `Otroligt snyggt! Nivå ${this.currentLevel} • ${this.currentCelestialBody.name} (${this.currentShape.name}) är avklarad.`;
+    }
+
+    const cCategory = document.getElementById('win-celestial-category');
+    const cName = document.getElementById('win-celestial-name');
+    const cDesc = document.getElementById('win-celestial-desc');
+    const cLink = document.getElementById('win-celestial-link') as HTMLAnchorElement;
+    const cSource = document.getElementById('win-celestial-source');
+
+    if (cCategory) cCategory.textContent = this.currentCelestialBody.category;
+    if (cName) cName.textContent = this.currentCelestialBody.name;
+    if (cDesc) cDesc.textContent = this.currentCelestialBody.description;
+    if (cSource) cSource.textContent = this.currentCelestialBody.sourceName;
+    if (cLink) {
+      cLink.href = this.currentCelestialBody.url;
+      cLink.title = `Öppna ${this.currentCelestialBody.name} i ${this.currentCelestialBody.sourceName}`;
     }
 
     // Animera stjärnor med ljud
@@ -1043,11 +1071,10 @@ class CubeAwayGame {
     const updateQuickBtnStars = () => {
       document.querySelectorAll('.quick-btn').forEach((btn) => {
         const lvl = parseInt(btn.getAttribute('data-level') || '1', 10);
+        const body = getCelestialBody(lvl);
         const stars = scoreManager.getLevelStars(lvl);
         const starStr = stars > 0 ? ' ' + '★'.repeat(stars) : '';
-        const baseName = btn.getAttribute('data-raw-name') || btn.textContent?.split('★')[0].trim() || '';
-        btn.setAttribute('data-raw-name', baseName);
-        btn.textContent = `${baseName}${starStr}`;
+        btn.textContent = `${lvl} • ${body.name}${starStr}`;
       });
     };
 

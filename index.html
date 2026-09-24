@@ -41,6 +41,11 @@
             </div>
             <button class="nav-arrow-btn" id="next-level-btn" title="Nästa nivå">›</button>
           </div>
+          <a class="celestial-link-btn" id="celestial-explore-btn" href="#" target="_blank" rel="noopener noreferrer" title="Utforska himlakroppen i 3D-universum">
+            <span class="celestial-icon">🌌</span>
+            <span class="celestial-name" id="celestial-explore-name">Solen</span>
+            <span class="celestial-arrow">↗</span>
+          </a>
           <div class="mode-selector" id="mode-selector">
             <button class="mode-btn active" id="mode-btn-classic" data-mode="classic" title="Klassiskt läge">Klassisk</button>
             <button class="mode-btn" id="mode-btn-time" data-mode="time_attack" title="Tidspress: 60 sekunder + 2s per pil">⏱️ Tidspress</button>
@@ -181,6 +186,20 @@
               <span class="win-score-label">Nivåpoäng:</span>
               <span class="win-score-val highlight" id="win-total-score">0</span>
             </div>
+          </div>
+
+          <!-- Kosmisk Upptäckt faktaruta -->
+          <div class="win-celestial-box" id="win-celestial-box">
+            <div class="win-celestial-tag">
+              <span class="celestial-tag-icon">🪐</span>
+              <span id="win-celestial-category">Planet</span>
+            </div>
+            <h3 class="win-celestial-name" id="win-celestial-name">Himlakropp</h3>
+            <p class="win-celestial-desc" id="win-celestial-desc">Beskrivning av himlakroppen...</p>
+            <a class="win-celestial-link" id="win-celestial-link" href="#" target="_blank" rel="noopener noreferrer">
+              <span>🌌 Se position i universum (<span id="win-celestial-source">NASA Eyes</span>)</span>
+              <span>↗</span>
+            </a>
           </div>
 
           <!-- Highscore registrering med max 3 bokstäver -->

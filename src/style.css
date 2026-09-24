@@ -1755,3 +1755,140 @@ html, body {
   margin-top: 6px;
   padding-bottom: 4px;
 }
+
+/* =========================================================================
+   KOSMISKA HIMLAKROPPAR - UTFORSKNINGSKNAPP & VINSTKORT
+   ========================================================================= */
+
+/* Utforsknings-knapp i övre HUD */
+.celestial-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 6, 38, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 14px rgba(0, 240, 255, 0.15);
+  height: 42px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.celestial-link-btn:hover {
+  border-color: #00f0ff;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.6);
+  transform: translateY(-1px);
+  color: #ffffff;
+  background: rgba(10, 25, 55, 0.9);
+}
+
+.celestial-link-btn:active {
+  transform: translateY(1px);
+}
+
+.celestial-icon {
+  font-size: 15px;
+}
+
+.celestial-name {
+  color: #fdf2f8;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.celestial-arrow {
+  color: #00f0ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Kosmisk Upptäckt-kort i vinstmodalen */
+.win-celestial-box {
+  background: linear-gradient(135deg, rgba(16, 24, 48, 0.75), rgba(30, 10, 45, 0.75));
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin: 14px 0 16px;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.12);
+}
+
+.win-celestial-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #00f0ff;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+}
+
+.celestial-tag-icon {
+  font-size: 13px;
+}
+
+.win-celestial-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.45);
+}
+
+.win-celestial-desc {
+  font-size: 12.5px;
+  color: #e2d9ec;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.win-celestial-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(255, 0, 234, 0.2));
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.15);
+}
+
+.win-celestial-link:hover {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.35), rgba(255, 0, 234, 0.35));
+  border-color: #00f0ff;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.win-celestial-link:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 640px) {
+  .celestial-link-btn {
+    height: 38px;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .celestial-name {
+    max-width: 100px;
+  }
+}
+
