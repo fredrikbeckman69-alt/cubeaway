@@ -1,19 +1,43 @@
-﻿# CubeAway Project Skills & Workflows
+# CubeAway Project Skills & Workflows
 
-## Regel: Omedelbar Git-Deploy vid Kodförändringar
-**Alla kodförändringar i detta projekt SKA omedelbart committas och pushas/deployas till Git och GitHub Pages.**
+## Regel: Löpande och Omedelbar Git-Synkronisering
+**Koden ska ALLTID vara 100 % identisk lokalt och på Git (origin/main). Detta SKA göras löpande vid varje enskild kodförändring och delmoment.**
 
-### Arbetsflöde vid kodändring:
-1. När ändringar i källkod (src/, index.html, etc.) eller konfiguration har gjorts och verifierats (npm run build passerar utan fel):
-2. Kör omedelbart:
-   git add .
-   git commit -m '<beskrivande meddelande om ändringen>'
-   git push origin main
+Inga ändringar får någonsin lämnas opushade, osynkade eller liggande lokalt efter att ett delsteg eller önskemål utförts.
 
-3. GitHub Actions-arbetsflödet (.github/workflows/deploy.yml) triggas automatiskt vid varje push till main och bygger samt publicerar den uppdaterade versionen till GitHub Pages:
-   - Live URL: https://fredrikbeckman69-alt.github.io/cubeaway/
-   - Repo: https://github.com/fredrikbeckman69-alt/cubeaway
+---
 
-### Regler för agenter och utvecklare:
-- Lämna aldrig ändringar osparade eller ocommittade i repot efter att ett användarönskemål eller en ändring har slutförts.
-- Se till att npm run build lyckas innan push så att GitHub Actions-bygget alltid går grönt.
+### Löpande arbetsflöde:
+1. **Inför varje session / arbete:**
+   - Kontrollera att arbetsytan är ren och synkad:
+     ```bash
+     git status
+     git fetch origin
+     ```
+2. **Vid VARJE kodändring, justering eller ny funktion (löpande):**
+   - Testa alltid bygget först:
+     ```bash
+     npm run build
+     ```
+   - Committa och pusha omedelbart till `main`:
+     ```bash
+     git add .
+     git commit -m '<beskrivande meddelande om ändringen>'
+     git push origin main
+     ```
+   - Verifiera att status är helt ren:
+     ```bash
+     git status
+     ```
+     *(Ska visa: `Your branch is up to date with 'origin/main'` och `nothing to commit, working tree clean`)*
+
+3. **Automatisk publicering via GitHub Actions:**
+   - Varje push till `main` triggar automatisk byggnation och publicering till GitHub Pages:
+     - **Live URL:** https://fredrikbeckman69-alt.github.io/cubeaway/
+     - **GitHub Repo:** https://github.com/fredrikbeckman69-alt/cubeaway
+
+---
+
+### Strikt regel för agenter:
+* Alla förändringar ska omedelbart speglas på Git så att den senaste koden ALLTID är densamma lokalt som i repot.
+* Ingen förändring betraktas som slutförd förrän koden har byggts, committats och pushats till `origin main`.
