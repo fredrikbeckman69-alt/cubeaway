@@ -1080,14 +1080,6 @@ class CubeAwayGame {
       this.giveHint();
     });
 
-    const musicBtn = document.getElementById('music-btn');
-    const musicIcon = document.getElementById('music-icon');
-    musicBtn?.addEventListener('click', () => {
-      const muted = sound.toggleMusic();
-      if (musicIcon) {
-        musicIcon.textContent = muted ? '🔇' : '🎵';
-      }
-    });
 
     const soundBtn = document.getElementById('sound-btn');
     const soundIcon = document.getElementById('sound-icon');
