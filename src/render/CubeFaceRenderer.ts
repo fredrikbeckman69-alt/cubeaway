@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Arrow, CubeCoord, DIR_DELTA, Direction } from '../puzzle/types';
+import { Arrow, CubeCoord, DIR_DELTA, Direction, PortalDef, ReflectorDef } from '../puzzle/types';
 import { LevelTheme, getLevelTheme } from '../puzzle/theme';
 
 export class CubeFaceRenderer {
@@ -44,7 +44,9 @@ export class CubeFaceRenderer {
     hoveredArrowId: string | null = null,
     shakingArrowId: string | null = null,
     shakeOffset: { x: number; y: number } = { x: 0, y: 0 },
-    hintArrowId: string | null = null
+    hintArrowId: string | null = null,
+    portals: PortalDef[] = [],
+    reflectors: ReflectorDef[] = []
   ) {
     const ctx = this.ctxs[faceIdx];
     const res = this.resolution;
@@ -139,6 +141,81 @@ export class CubeFaceRenderer {
         isShaking ? shakeOffset : { x: 0, y: 0 },
         isHovered || isHint
       );
+    }
+
+    // 4. Rita kosmiska portaler (maskhål) på denna sida
+    if (portals && portals.length > 0) {
+      for (const portal of portals) {
+        const coords = [portal.portalA, portal.portalB].filter((c) => c.faceIdx === faceIdx);
+        for (const c of coords) {
+          const px = c.c * cellSize + cellSize * 0.5;
+          const py = c.r * cellSize + cellSize * 0.5;
+          const rad = cellSize * 0.42;
+
+          ctx.save();
+          // Pulserande kosmiskt maskhål med djup lila/cyan neon-aura
+          const portalGrad = ctx.createRadialGradient(px, py, rad * 0.15, px, py, rad);
+          portalGrad.addColorStop(0, '#000000');
+          portalGrad.addColorStop(0.5, '#7928ca');
+          portalGrad.addColorStop(0.85, '#00dfd8');
+          portalGrad.addColorStop(1, 'rgba(0, 223, 216, 0)');
+
+          ctx.fillStyle = portalGrad;
+          ctx.beginPath();
+          ctx.arc(px, py, rad, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#00f0ff';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#00dfd8';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(px, py, rad * 0.75, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Liten ljuskärna
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(px, py, rad * 0.22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
+    // 5. Rita prismor / reflektorer på denna sida
+    if (reflectors && reflectors.length > 0) {
+      for (const refl of reflectors) {
+        if (refl.coord.faceIdx !== faceIdx) continue;
+        const rx = refl.coord.c * cellSize;
+        const ry = refl.coord.r * cellSize;
+
+        ctx.save();
+        ctx.strokeStyle = '#67e8f9';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 14;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        if (refl.orientation === '/') {
+          ctx.moveTo(rx + cellSize * 0.15, ry + cellSize * 0.85);
+          ctx.lineTo(rx + cellSize * 0.85, ry + cellSize * 0.15);
+        } else {
+          ctx.moveTo(rx + cellSize * 0.15, ry + cellSize * 0.15);
+          ctx.lineTo(rx + cellSize * 0.85, ry + cellSize * 0.85);
+        }
+        ctx.stroke();
+
+        // Kristallglans i mitten
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(rx + cellSize * 0.5, ry + cellSize * 0.5, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     this.textures[faceIdx].needsUpdate = true;

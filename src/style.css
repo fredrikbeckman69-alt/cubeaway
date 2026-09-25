@@ -333,8 +333,27 @@ html, body {
   font-weight: 800;
   color: #ffffff;
   line-height: 1.1;
-  margin: 2px 0 6px;
+  margin: 2px 0 4px;
   text-shadow: 0 0 12px rgba(255, 0, 234, 0.6);
+}
+
+.moves-par-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #fce7f3;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.moves-par-row b {
+  color: #ff66cc;
+  font-weight: 700;
+}
+
+.par-separator {
+  opacity: 0.4;
 }
 
 .progress-bar-bg {
@@ -561,73 +580,145 @@ html, body {
   padding: 24px;
 }
 
-.level-jump-row {
-  margin-bottom: 24px;
+/* Kosmisk Stjärnkarta Modal */
+.starmap-card {
+  max-width: 680px;
+  width: 94%;
 }
 
-.level-jump-row label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #f472b6;
-  margin-bottom: 8px;
+.starmap-body {
+  padding: 16px 20px;
 }
 
-.input-group {
+.starmap-search-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-.input-group input {
+.starmap-search-row input {
   flex: 1;
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 45, 135, 0.35);
   background: rgba(255, 255, 255, 0.08);
-  font-size: 16px;
+  font-size: 14px;
   font-family: inherit;
   font-weight: 600;
   color: #ffffff;
   outline: none;
 }
 
-.input-group input:focus {
+.starmap-search-row input:focus {
   border-color: #ff00ea;
   box-shadow: 0 0 0 3px rgba(255, 0, 234, 0.25);
 }
 
-.quick-title {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #f472b6;
-  margin-bottom: 10px;
+.starmap-zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
-.quick-btn-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.quick-btn {
-  padding: 10px 12px;
+.starmap-zone-btn {
   background: rgba(40, 12, 60, 0.65);
-  border: 1px solid rgba(255, 45, 135, 0.25);
-  border-radius: 10px;
+  border: 1px solid rgba(255, 45, 135, 0.3);
+  color: #f472b6;
+  border-radius: 9999px;
+  padding: 6px 12px;
   font-family: inherit;
+  font-size: 12px;
   font-weight: 600;
-  font-size: 13px;
-  color: #fdf2f8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.quick-btn:hover {
+.starmap-zone-btn:hover {
   background: rgba(80, 20, 110, 0.85);
-  border-color: #ff00ea;
   color: #ffffff;
-  box-shadow: 0 0 12px rgba(255, 0, 234, 0.4);
+  border-color: #ff00ea;
+}
+
+.starmap-zone-btn.active {
+  background: linear-gradient(135deg, #ff00ea, #ff2a85);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 0 12px rgba(255, 0, 234, 0.5);
+}
+
+.starmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 52vh;
+  max-height: 52dvh;
+  overflow-y: auto;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.starmap-item {
+  background: rgba(26, 8, 38, 0.7);
+  border: 1px solid rgba(255, 45, 135, 0.22);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  text-align: left;
+}
+
+.starmap-item:hover {
+  background: rgba(60, 15, 90, 0.85);
+  border-color: #ff00ea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 0, 234, 0.35);
+}
+
+.starmap-item.current {
+  border-color: #ffd700;
+  background: rgba(50, 20, 60, 0.85);
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.4);
+}
+
+.starmap-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.starmap-item-lvl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff66cc;
+  letter-spacing: 0.5px;
+}
+
+.starmap-item-cat {
+  font-size: 10px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+
+.starmap-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.starmap-item-stars {
+  font-size: 11px;
+  color: #ffd700;
+  letter-spacing: 1px;
 }
 
 /* Knappar allmän */

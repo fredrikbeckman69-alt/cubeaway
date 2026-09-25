@@ -75,8 +75,38 @@ class SoundManager {
     osc.start(t);
     osc.stop(t + 0.33);
 
-    // Klock-överton vid högre combos
+    // Musikaliskt rymd-arpeggio vid combos: kaskadnoter som spelar glittrande ackord
     if (this.comboCount >= 2) {
+      // Arpeggionoter beroende på combo-nivå
+      // Combo 2: 2 toner (grundton + kvint)
+      // Combo 3-5: 3 toner (grundton + ters + kvint)
+      // Combo 6+: 4 toner (grundton + ters + kvint + oktav)
+      const arpeggioIntervals = this.comboCount >= 6 
+        ? [4, 7, 12] 
+        : (this.comboCount >= 3 ? [4, 7] : [7]);
+      
+      const stepDuration = 0.055; // 55ms mellan tonerna
+      arpeggioIntervals.forEach((interval, idx) => {
+        const noteTime = t + (idx + 1) * stepDuration;
+        const noteFreq = baseFreq * Math.pow(2, interval / 12);
+
+        const arpOsc = ctx.createOscillator();
+        const arpGain = ctx.createGain();
+        arpOsc.type = 'sine';
+        arpOsc.frequency.setValueAtTime(noteFreq, noteTime);
+        arpOsc.frequency.exponentialRampToValueAtTime(noteFreq * 1.01, noteTime + 0.12);
+
+        const volume = Math.min(0.20, 0.08 + this.comboCount * 0.012) / (idx + 1);
+        arpGain.gain.setValueAtTime(volume, noteTime);
+        arpGain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.28);
+
+        arpOsc.connect(arpGain);
+        arpGain.connect(ctx.destination);
+        arpOsc.start(noteTime);
+        arpOsc.stop(noteTime + 0.29);
+      });
+
+      // Kristall-överton vid höga combos
       const harmOsc = ctx.createOscillator();
       const harmGain = ctx.createGain();
       harmOsc.type = 'triangle';

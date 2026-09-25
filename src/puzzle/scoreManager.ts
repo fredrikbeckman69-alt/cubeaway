@@ -73,6 +73,10 @@ export class ScoreManager {
   private timeAttackActive: boolean = false;
   private maxComboInCurrentLevel: number = 0;
 
+  // Drag & Par-räkning
+  private movesCount: number = 0;
+  private parMoves: number = 0;
+
   private isSyncing: boolean = false;
 
   constructor() {
@@ -209,6 +213,37 @@ export class ScoreManager {
   }
 
   /**
+   * Registrerar ett drag (avfyrad pil eller felklick)
+   */
+  public recordMove() {
+    this.movesCount++;
+  }
+
+  public getMovesCount(): number {
+    return this.movesCount;
+  }
+
+  public getParMoves(): number {
+    return this.parMoves;
+  }
+
+  public getTodayDateString(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  public getDailyLevelNumber(dateStr?: string): number {
+    const str = dateStr || this.getTodayDateString();
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    // Deterministisk daglig bana mellan bana 25 och 350
+    return 25 + (Math.abs(hash) % 326);
+  }
+
+  /**
    * Startar en nivå. Poängen nollställs ALLTID vid varje ny nivå eller omstart.
    */
   public startLevel(_isRestart: boolean = false, totalArrows?: number) {
@@ -216,6 +251,8 @@ export class ScoreManager {
     this.levelStartTime = performance.now();
     this.resetCombo();
     this.maxComboInCurrentLevel = 0;
+    this.movesCount = 0;
+    this.parMoves = totalArrows || 0;
 
     if (this.gameMode === 'time_attack') {
       this.timeAttackSecondsLeft = this.calculateInitialTimeAttackSeconds(totalArrows || 50);
@@ -229,6 +266,7 @@ export class ScoreManager {
   public rollbackUnfinishedLevel() {
     this.currentScore = 0;
     this.resetCombo();
+    this.movesCount = 0;
   }
 
   /**
@@ -379,6 +417,8 @@ export class ScoreManager {
   public addLevelWinBonus(level: number): {
     baseBonus: number;
     speedBonus: number;
+    parBonus: number;
+    isPar: boolean;
     totalBonus: number;
     totalScore: number;
   } {
@@ -390,12 +430,18 @@ export class ScoreManager {
     const speedRatio = Math.max(0, (targetSeconds - elapsedSeconds) / targetSeconds);
     const speedBonus = Math.floor(speedRatio * 2500);
 
-    const totalBonus = baseBonus + speedBonus;
+    // Par-bonus: Om man klarade nivån på exakt Par (eller färre): 2000p bonus!
+    const isPar = this.movesCount <= this.parMoves;
+    const parBonus = isPar ? 2000 : Math.max(0, 1500 - (this.movesCount - this.parMoves) * 150);
+
+    const totalBonus = baseBonus + speedBonus + parBonus;
     this.currentScore += totalBonus;
 
     return {
       baseBonus,
       speedBonus,
+      parBonus,
+      isPar,
       totalBonus,
       totalScore: this.currentScore,
     };

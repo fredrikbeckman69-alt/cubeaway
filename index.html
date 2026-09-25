@@ -48,6 +48,7 @@
           </a>
           <div class="mode-selector" id="mode-selector">
             <button class="mode-btn active" id="mode-btn-classic" data-mode="classic" title="Klassiskt läge">Klassisk</button>
+            <button class="mode-btn" id="mode-btn-daily" data-mode="daily" title="Dagens Bana: Global daglig kosmisk utmaning!">🌟 Dagens</button>
             <button class="mode-btn" id="mode-btn-time" data-mode="time_attack" title="Tidspress: Mänskligt anpassad tid baserad på banans storlek + bonussekunder per pil!">⏱️ Tidspress</button>
             <button class="mode-btn" id="mode-btn-zen" data-mode="zen" title="Zen: Avkopplande pussel utan stress">☯️ Zen</button>
           </div>
@@ -62,6 +63,11 @@
           <div class="arrow-counter-container">
             <div class="counter-label">Återstående pilar</div>
             <div class="counter-value" id="remaining-arrows">0</div>
+            <div class="moves-par-row" id="moves-par-row" title="Antal drag och banans par-mål för perfekt match">
+              <span class="moves-label">Drag: <b id="moves-count">0</b></span>
+              <span class="par-separator">•</span>
+              <span class="par-label">Par: <b id="par-count">0</b></span>
+            </div>
             <div class="progress-bar-bg">
               <div class="progress-bar-fill" id="progress-bar"></div>
             </div>
@@ -124,35 +130,31 @@
         </div>
       </footer>
 
-      <!-- Banväljare Modal -->
+      <!-- Kosmisk Stjärnkarta / Banväljare Modal -->
       <div class="modal-backdrop hidden" id="level-modal">
-        <div class="modal-card">
+        <div class="modal-card starmap-card">
           <div class="modal-header">
-            <h2>Välj Bana (1 – 1000)</h2>
+            <h2>🌌 Kosmisk Stjärnkarta (Bana 1 – 1000)</h2>
             <button class="close-btn" id="close-level-modal">✕</button>
           </div>
-          <div class="modal-body">
-            <div class="level-jump-row">
-              <label for="level-input">Hoppa direkt till bana:</label>
-              <div class="input-group">
-                <input type="number" id="level-input" min="1" max="1000" value="1" />
-                <button class="btn btn-primary" id="jump-level-btn">Gå till bana</button>
-              </div>
+          <div class="modal-body starmap-body">
+            <div class="starmap-search-row">
+              <input type="text" id="level-search-input" placeholder="🔍 Sök himlakropp eller ban-nr (1–1000)..." autocomplete="off" />
+              <button class="btn btn-primary" id="jump-level-btn">Res hit 🚀</button>
             </div>
-            <div class="level-quick-links">
-              <span class="quick-title">Snabbval:</span>
-              <div class="quick-btn-grid">
-                <button class="quick-btn" data-level="1">Bana 1 • Solen</button>
-                <button class="quick-btn" data-level="4">Bana 4 • Jorden (Tellus)</button>
-                <button class="quick-btn" data-level="25">Bana 25 • Triton</button>
-                <button class="quick-btn" data-level="50">Bana 50 • Psyche</button>
-                <button class="quick-btn" data-level="100">Bana 100 • Ryugu</button>
-                <button class="quick-btn" data-level="250">Bana 250 • Vega</button>
-                <button class="quick-btn" data-level="500">Bana 500 • Kepler-452b</button>
-                <button class="quick-btn" data-level="750">Bana 750 • Plejaderna</button>
-                <button class="quick-btn" data-level="1000">Bana 1000 • Hercules-Corona Borealis</button>
-              </div>
+
+            <!-- Astronomiska zoner -->
+            <div class="starmap-zones" id="starmap-zones">
+              <button class="starmap-zone-btn active" data-zone="inner">☀️ Solsystemet (1–10)</button>
+              <button class="starmap-zone-btn" data-zone="gas">🪐 Gasjättar & Månar (11–35)</button>
+              <button class="starmap-zone-btn" data-zone="kuiper">☄️ Kuiperbältet (36–75)</button>
+              <button class="starmap-zone-btn" data-zone="stars">✨ Stjärnor (76–200)</button>
+              <button class="starmap-zone-btn" data-zone="nebula">🌌 Nebulosor (201–500)</button>
+              <button class="starmap-zone-btn" data-zone="galaxies">🌀 Galaxer (501–1000)</button>
             </div>
+
+            <!-- Rutnät med himlakroppar -->
+            <div class="starmap-grid" id="starmap-grid"></div>
           </div>
         </div>
       </div>
@@ -175,6 +177,10 @@
 
           <!-- Poängsummering i vinstfönstret -->
           <div class="win-score-box">
+            <div class="win-score-row" id="win-par-row">
+              <span class="win-score-label" id="win-par-label">Par-resultat:</span>
+              <span class="win-score-val highlight" id="win-par-val">+0</span>
+            </div>
             <div class="win-score-row">
               <span class="win-score-label">Banbonus:</span>
               <span class="win-score-val" id="win-level-bonus">+0</span>

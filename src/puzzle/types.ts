@@ -1,6 +1,6 @@
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 export type ArrowType = 'normal' | 'frozen' | 'linked';
-export type GameMode = 'classic' | 'time_attack' | 'zen';
+export type GameMode = 'classic' | 'time_attack' | 'zen' | 'daily';
 
 export interface CubeCoord {
   faceIdx: number;
@@ -17,6 +17,18 @@ export interface Arrow {
   type?: ArrowType;
   isFrozen?: boolean;
   linkedWithId?: string;
+}
+
+export interface PortalDef {
+  id: string;
+  portalA: CubeCoord;
+  portalB: CubeCoord;
+}
+
+export interface ReflectorDef {
+  id: string;
+  coord: CubeCoord;
+  orientation: '/' | '\\';
 }
 
 export interface LevelConfig {

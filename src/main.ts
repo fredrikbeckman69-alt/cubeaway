@@ -3,13 +3,14 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { generateCubePuzzle, canArrowFly } from './puzzle/generator';
-import { Arrow, DIR_DELTA, GameMode, CUBE_FACE_NAMES_SV } from './puzzle/types';
+import { Arrow, DIR_DELTA, GameMode, CUBE_FACE_NAMES_SV, PortalDef, ReflectorDef } from './puzzle/types';
 import { LevelTheme, getLevelTheme } from './puzzle/theme';
 import { ShapeDefinition, getLevelShape, createShapeGeometry } from './puzzle/shapes';
 import { CelestialBody, getCelestialBody } from './puzzle/celestialBodies';
 import { CubeFaceRenderer } from './render/CubeFaceRenderer';
 import { FlyingArrowManager } from './render/FlyingArrowManager';
 import { ParticleManager } from './render/ParticleManager';
+import { CelestialSphere } from './render/CelestialSphere';
 import { CubeController, HitResult } from './controls/CubeController';
 import { sound } from './audio';
 import { scoreManager } from './puzzle/scoreManager';
@@ -23,6 +24,7 @@ class CubeAwayGame {
   private bloomPass!: UnrealBloomPass;
   private cubeGroup: THREE.Group;
   private cubeMesh!: THREE.Mesh;
+  private celestialSphere: CelestialSphere;
 
   // Ljus
   private dirLight1!: THREE.DirectionalLight;
@@ -48,6 +50,8 @@ class CubeAwayGame {
   private remainingArrows: number = 0;
   private blockedClicksCount: number = 0;
   private isVictoryAnimating: boolean = false;
+  private currentPortals: PortalDef[] = [];
+  private currentReflectors: ReflectorDef[] = [];
 
   // Interaktion & Feedback
   private hoveredArrowId: string | null = null;
@@ -57,6 +61,8 @@ class CubeAwayGame {
   private backgroundTexture: THREE.Texture | null = null;
   private leaderboardTab: 'level' | 'alltime' = 'alltime';
   private leaderboardViewLevel: number = 1;
+  private starMapZone: string = 'inner';
+  private starMapSearch: string = '';
 
   // Konstanter
   private readonly CUBE_SIZE = 3.8;
@@ -163,7 +169,10 @@ class CubeAwayGame {
     this.dirLight2.position.set(-5, 5, -5);
     this.scene.add(this.dirLight2);
 
-    // 5. Kub-grupp och mesh
+    // 5. Himlakropp i rymdbakgrunden & Kub-grupp
+    this.celestialSphere = new CelestialSphere();
+    this.scene.add(this.celestialSphere.group);
+
     this.cubeGroup = new THREE.Group();
     this.scene.add(this.cubeGroup);
 
@@ -265,6 +274,11 @@ class CubeAwayGame {
     this.faceRenderer.setTheme(this.currentTheme);
     document.title = `CubeAway 3D - Bana ${this.currentLevel} • ${this.currentCelestialBody.name}`;
 
+    // Uppdatera 3D-himlakropp i bakgrunden
+    if (this.celestialSphere) {
+      this.celestialSphere.updateCelestialBody(this.currentCelestialBody);
+    }
+
     // 2. Uppdatera 3D-geometrin för vald form (100 % balanserad polyeder med pilar på alla 6 sidor)
     if (this.cubeMesh) {
       this.cubeMesh.geometry.dispose();
@@ -297,10 +311,12 @@ class CubeAwayGame {
       scoreManager.rollbackUnfinishedLevel();
     }
 
-    const { config, allArrows, initialGrids } = generateCubePuzzle(this.currentLevel);
+    const { config, allArrows, initialGrids, portals, reflectors } = generateCubePuzzle(this.currentLevel);
     this.gridSize = config.gridSize;
     this.allArrows = allArrows;
     this.grids = initialGrids;
+    this.currentPortals = portals || [];
+    this.currentReflectors = reflectors || [];
 
     this.faceRenderer.setGridSize(this.gridSize);
     this.controller.setGridSize(this.gridSize);
@@ -311,9 +327,9 @@ class CubeAwayGame {
     // Starta nivå och synka poängmätare med banans faktiska antal pilar
     scoreManager.startLevel(isRestart, this.totalInitialArrows);
 
-    // Rita alla 6 kubsidor med det nya temat
+    // Rita alla 6 kubsidor med det nya temat, portaler och reflektorer
     for (let f = 0; f < 6; f++) {
-      this.faceRenderer.renderFace(f, this.allArrows);
+      this.renderFaceState(f);
     }
 
     this.updateHUD();
@@ -505,6 +521,81 @@ class CubeAwayGame {
     modal?.classList.add('hidden');
   }
 
+  private renderStarMap(zone?: string, query?: string) {
+    if (zone !== undefined) this.starMapZone = zone;
+    if (query !== undefined) this.starMapSearch = query.trim().toLowerCase();
+
+    const grid = document.getElementById('starmap-grid');
+    if (!grid) return;
+
+    let minLevel = 1;
+    let maxLevel = 10;
+    if (this.starMapZone === 'gas') {
+      minLevel = 11; maxLevel = 35;
+    } else if (this.starMapZone === 'kuiper') {
+      minLevel = 36; maxLevel = 75;
+    } else if (this.starMapZone === 'stars') {
+      minLevel = 76; maxLevel = 200;
+    } else if (this.starMapZone === 'nebula') {
+      minLevel = 201; maxLevel = 500;
+    } else if (this.starMapZone === 'galaxies') {
+      minLevel = 501; maxLevel = 1000;
+    }
+
+    let items: CelestialBody[] = [];
+    if (this.starMapSearch) {
+      const q = this.starMapSearch;
+      const numQuery = parseInt(q, 10);
+      if (!isNaN(numQuery) && numQuery >= 1 && numQuery <= 1000) {
+        items.push(getCelestialBody(numQuery));
+      }
+      for (let i = 1; i <= 1000; i++) {
+        const body = getCelestialBody(i);
+        if (body.name.toLowerCase().includes(q) || body.category.toLowerCase().includes(q)) {
+          if (!items.find((x) => x.level === body.level)) {
+            items.push(body);
+          }
+        }
+        if (items.length >= 80) break;
+      }
+    } else {
+      for (let i = minLevel; i <= maxLevel; i++) {
+        items.push(getCelestialBody(i));
+      }
+    }
+
+    grid.innerHTML = '';
+    const frag = document.createDocumentFragment();
+
+    items.forEach((body) => {
+      const stars = scoreManager.getLevelStars(body.level);
+      const isCur = body.level === this.currentLevel;
+      const itemEl = document.createElement('div');
+      itemEl.className = `starmap-item ${isCur ? 'current' : ''}`;
+      itemEl.setAttribute('data-level', body.level.toString());
+
+      const starStr = stars > 0 ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '☆☆☆';
+
+      itemEl.innerHTML = `
+        <div class="starmap-item-header">
+          <span class="starmap-item-lvl">BANA ${body.level}</span>
+          <span class="starmap-item-cat">${body.category}</span>
+        </div>
+        <div class="starmap-item-name" title="${body.name}">${body.name}</div>
+        <div class="starmap-item-stars" title="${stars} stjärnor">${starStr}</div>
+      `;
+
+      itemEl.addEventListener('click', () => {
+        document.getElementById('level-modal')?.classList.add('hidden');
+        this.loadLevel(body.level);
+      });
+
+      frag.appendChild(itemEl);
+    });
+
+    grid.appendChild(frag);
+  }
+
   private updateHUD() {
     const levelText = document.getElementById('level-text');
     if (levelText) {
@@ -554,6 +645,11 @@ class CubeAwayGame {
       progressBar.style.background = this.currentTheme.accentGradient;
       progressBar.style.boxShadow = `0 0 10px ${this.currentTheme.arrowGlow}`;
     }
+
+    const movesVal = document.getElementById('moves-count');
+    const parVal = document.getElementById('par-count');
+    if (movesVal) movesVal.textContent = scoreManager.getMovesCount().toString();
+    if (parVal) parVal.textContent = scoreManager.getParMoves().toString();
 
     this.updateScoreHUD();
     this.updateComboHUD();
@@ -623,7 +719,9 @@ class CubeAwayGame {
       this.hoveredArrowId,
       shakingId,
       shakeOffset,
-      this.hintArrowId
+      this.hintArrowId,
+      this.currentPortals,
+      this.currentReflectors
     );
   }
 
@@ -634,6 +732,8 @@ class CubeAwayGame {
   ) {
     const arrowIdx = this.allArrows.findIndex((a) => a.id === arrow.id);
     if (arrowIdx === -1) return;
+
+    scoreManager.recordMove();
 
     sound.playArrowSuccess(scoreManager.getComboStreak());
     if ('vibrate' in navigator) navigator.vibrate(15);
@@ -725,10 +825,13 @@ class CubeAwayGame {
     if (arrowIdx === -1) return;
 
     const arrow = this.allArrows[arrowIdx];
-    const canFly = canArrowFly(arrow, this.grids, this.gridSize);
+    const canFly = canArrowFly(arrow, this.grids, this.gridSize, this.currentPortals, this.currentReflectors);
 
     // 1. Fryst pil (innesluten i is – klicka när vägen är fri för att krossa isen!)
     if (arrow.type === 'frozen' && arrow.isFrozen) {
+      scoreManager.recordMove();
+      this.updateHUD();
+
       if (!canFly) {
         sound.playArrowBlocked();
         this.blockedClicksCount++;
@@ -768,11 +871,13 @@ class CubeAwayGame {
     // 2. Länkad pil (par – båda måste ha fri väg för att skjutas iväg som ett duoskott)
     if (arrow.type === 'linked' && arrow.linkedWithId) {
       const twin = this.allArrows.find((a) => a.id === arrow.linkedWithId);
-      const twinCanFly = twin ? canArrowFly(twin, this.grids, this.gridSize) : false;
+      const twinCanFly = twin ? canArrowFly(twin, this.grids, this.gridSize, this.currentPortals, this.currentReflectors) : false;
 
       if (!canFly || !twinCanFly) {
         sound.playArrowBlocked();
         this.blockedClicksCount++;
+        scoreManager.recordMove();
+        this.updateHUD();
         if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
 
         const combinedFaces = new Set<number>();
@@ -818,6 +923,8 @@ class CubeAwayGame {
     } else {
       sound.playArrowBlocked();
       this.blockedClicksCount++;
+      scoreManager.recordMove();
+      this.updateHUD();
       if ('vibrate' in navigator) navigator.vibrate([25, 40, 25]);
       const { penalty } = scoreManager.onBlockedArrow();
       this.updateScoreHUD();
@@ -845,11 +952,11 @@ class CubeAwayGame {
       if (a.type === 'linked' && a.linkedWithId) {
         const twin = this.allArrows.find((t) => t.id === a.linkedWithId);
         return (
-          canArrowFly(a, this.grids, this.gridSize) &&
-          (twin ? canArrowFly(twin, this.grids, this.gridSize) : false)
+          canArrowFly(a, this.grids, this.gridSize, this.currentPortals, this.currentReflectors) &&
+          (twin ? canArrowFly(twin, this.grids, this.gridSize, this.currentPortals, this.currentReflectors) : false)
         );
       }
-      return canArrowFly(a, this.grids, this.gridSize);
+      return canArrowFly(a, this.grids, this.gridSize, this.currentPortals, this.currentReflectors);
     });
 
     if (hint) {
@@ -964,6 +1071,8 @@ class CubeAwayGame {
     bonus?: {
       baseBonus: number;
       speedBonus: number;
+      parBonus: number;
+      isPar: boolean;
       totalBonus: number;
       totalScore: number;
     },
@@ -1005,6 +1114,20 @@ class CubeAwayGame {
             sound.playStarPop(i - 1);
           }, 200 + i * 240);
         }
+      }
+    }
+
+    const parLabel = document.getElementById('win-par-label');
+    const parVal = document.getElementById('win-par-val');
+    if (bonus && parVal) {
+      if (bonus.isPar) {
+        if (parLabel) parLabel.textContent = 'Par-resultat:';
+        parVal.textContent = `🎯 Perfekt Match på Par (+${bonus.parBonus.toLocaleString('sv-SE')})`;
+        parVal.style.color = '#ffd700';
+      } else {
+        if (parLabel) parLabel.textContent = 'Drag / Par:';
+        parVal.textContent = `${scoreManager.getMovesCount()} drag (Par: ${scoreManager.getParMoves()}) +${bonus.parBonus.toLocaleString('sv-SE')}`;
+        parVal.style.color = '#ff66cc';
       }
     }
 
@@ -1116,55 +1239,71 @@ class CubeAwayGame {
     });
 
     const levelModal = document.getElementById('level-modal');
-    const updateQuickBtnStars = () => {
-      document.querySelectorAll('.quick-btn').forEach((btn) => {
-        const lvl = parseInt(btn.getAttribute('data-level') || '1', 10);
-        const body = getCelestialBody(lvl);
-        const stars = scoreManager.getLevelStars(lvl);
-        const starStr = stars > 0 ? ' ' + '★'.repeat(stars) : '';
-        btn.textContent = `Bana ${lvl} • ${body.name}${starStr}`;
-      });
+    const searchInput = document.getElementById('level-search-input') as HTMLInputElement | null;
+
+    const openStarMap = () => {
+      levelModal?.classList.remove('hidden');
+      if (searchInput) {
+        searchInput.value = '';
+        this.starMapSearch = '';
+      }
+      this.renderStarMap();
     };
 
-    const openModal = () => {
-      levelModal?.classList.remove('hidden');
-      const input = document.getElementById('level-input') as HTMLInputElement;
-      if (input) input.value = this.currentLevel.toString();
-      updateQuickBtnStars();
-    };
-    const closeModal = () => {
+    const closeStarMap = () => {
       levelModal?.classList.add('hidden');
     };
 
-    document.getElementById('levels-modal-btn')?.addEventListener('click', openModal);
-    document.getElementById('level-display')?.addEventListener('click', openModal);
-    document.getElementById('close-level-modal')?.addEventListener('click', closeModal);
+    document.getElementById('levels-modal-btn')?.addEventListener('click', openStarMap);
+    document.getElementById('level-display')?.addEventListener('click', openStarMap);
+    document.getElementById('close-level-modal')?.addEventListener('click', closeStarMap);
 
-    const levelInput = document.getElementById('level-input') as HTMLInputElement | null;
-    levelInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('jump-level-btn')?.click();
-      }
-    });
-
-    document.getElementById('jump-level-btn')?.addEventListener('click', () => {
-      const input = document.getElementById('level-input') as HTMLInputElement;
-      if (input) {
-        const val = parseInt(input.value, 10);
-        if (!isNaN(val) && val >= 1 && val <= 1000) {
-          closeModal();
-          this.loadLevel(val);
-        }
-      }
-    });
-
-    document.querySelectorAll('.quick-btn').forEach((btn) => {
+    // Zon-knappar i stjärnkartan
+    document.querySelectorAll('.starmap-zone-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        const lvl = parseInt((e.currentTarget as HTMLElement).getAttribute('data-level') || '1', 10);
-        closeModal();
-        this.loadLevel(lvl);
+        document.querySelectorAll('.starmap-zone-btn').forEach((b) => b.classList.remove('active'));
+        const target = e.currentTarget as HTMLElement;
+        target.classList.add('active');
+        const zone = target.getAttribute('data-zone') || 'inner';
+        if (searchInput) searchInput.value = '';
+        this.starMapSearch = '';
+        this.renderStarMap(zone, '');
       });
     });
+
+    // Sökfält i stjärnkartan
+    searchInput?.addEventListener('input', (e) => {
+      const q = (e.target as HTMLInputElement).value;
+      this.renderStarMap(undefined, q);
+    });
+
+    const executeJump = () => {
+      if (!searchInput) return;
+      const q = searchInput.value.trim();
+      const num = parseInt(q, 10);
+      if (!isNaN(num) && num >= 1 && num <= 1000) {
+        closeStarMap();
+        this.loadLevel(num);
+        return;
+      }
+
+      if (q.length > 0) {
+        const lowerQ = q.toLowerCase();
+        for (let i = 1; i <= 1000; i++) {
+          const body = getCelestialBody(i);
+          if (body.name.toLowerCase().includes(lowerQ) || body.category.toLowerCase().includes(lowerQ)) {
+            closeStarMap();
+            this.loadLevel(body.level);
+            return;
+          }
+        }
+      }
+    };
+
+    searchInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') executeJump();
+    });
+    document.getElementById('jump-level-btn')?.addEventListener('click', executeJump);
 
     document.getElementById('next-level-win-btn')?.addEventListener('click', () => {
       if (this.currentLevel >= 1000) {
@@ -1197,7 +1336,7 @@ class CubeAwayGame {
 
     setupBackdropDismiss('win-modal', () => this.hideWinModal());
     setupBackdropDismiss('highscore-modal', () => this.closeLeaderboardModal());
-    setupBackdropDismiss('level-modal', () => closeModal());
+    setupBackdropDismiss('level-modal', () => closeStarMap());
     setupBackdropDismiss('time-over-modal', () => {
       document.getElementById('time-over-modal')?.classList.add('hidden');
     });
@@ -1234,7 +1373,7 @@ class CubeAwayGame {
         }
         const lvlModal = document.getElementById('level-modal');
         if (lvlModal && !lvlModal.classList.contains('hidden')) {
-          closeModal();
+          closeStarMap();
           return;
         }
         const toModal = document.getElementById('time-over-modal');
@@ -1366,9 +1505,10 @@ class CubeAwayGame {
     });
 
     // -------------------------------------------------------------
-    // Spellägen (Klassisk, Tidspress, Zen)
+    // Spellägen (Klassisk, Dagens Bana, Tidspress, Zen)
     // -------------------------------------------------------------
     const modeClassicBtn = document.getElementById('mode-btn-classic');
+    const modeDailyBtn = document.getElementById('mode-btn-daily');
     const modeTimeBtn = document.getElementById('mode-btn-time');
     const modeZenBtn = document.getElementById('mode-btn-zen');
     const timeAttackContainer = document.getElementById('time-attack-container');
@@ -1376,8 +1516,9 @@ class CubeAwayGame {
     const setMode = (mode: GameMode) => {
       sound.initCtx();
       scoreManager.setGameMode(mode, this.totalInitialArrows);
-      [modeClassicBtn, modeTimeBtn, modeZenBtn].forEach((b) => b?.classList.remove('active'));
+      [modeClassicBtn, modeDailyBtn, modeTimeBtn, modeZenBtn].forEach((b) => b?.classList.remove('active'));
       if (mode === 'classic') modeClassicBtn?.classList.add('active');
+      else if (mode === 'daily') modeDailyBtn?.classList.add('active');
       else if (mode === 'time_attack') modeTimeBtn?.classList.add('active');
       else if (mode === 'zen') modeZenBtn?.classList.add('active');
 
@@ -1386,10 +1527,20 @@ class CubeAwayGame {
       } else {
         timeAttackContainer?.classList.add('hidden');
       }
-      this.loadLevel(this.currentLevel, true);
+
+      if (mode === 'daily') {
+        const dailyLvl = scoreManager.getDailyLevelNumber();
+        this.loadLevel(dailyLvl, true);
+        const clickX = window.innerWidth / 2;
+        const clickY = window.innerHeight / 2;
+        this.spawnScoreToast(`🌟 Dagens Bana: ${scoreManager.getTodayDateString()}`, clickX, clickY, 'combo-bonus');
+      } else {
+        this.loadLevel(this.currentLevel, true);
+      }
     };
 
     modeClassicBtn?.addEventListener('click', () => setMode('classic'));
+    modeDailyBtn?.addEventListener('click', () => setMode('daily'));
     modeTimeBtn?.addEventListener('click', () => setMode('time_attack'));
     modeZenBtn?.addEventListener('click', () => setMode('zen'));
 
@@ -1502,6 +1653,11 @@ class CubeAwayGame {
 
     // Uppdatera 3D-partiklar
     this.particleManager.update(deltaSeconds);
+
+    // Uppdatera 3D-himlakropp i bakgrunden
+    if (this.celestialSphere) {
+      this.celestialSphere.update(deltaSeconds, this.cubeGroup.rotation.y, this.cubeGroup.rotation.x);
+    }
 
 
 

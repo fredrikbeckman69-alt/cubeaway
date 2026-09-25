@@ -1,5 +1,13 @@
-import { Arrow, CubeCoord, Direction, DIR_DELTA, LevelConfig } from './types';
+import { Arrow, CubeCoord, Direction, DIR_DELTA, LevelConfig, PortalDef, ReflectorDef } from './types';
 import { stepOnCube } from './cubeTopology';
+
+export interface PuzzleResult {
+  config: LevelConfig;
+  allArrows: Arrow[];
+  initialGrids: (string | null)[][][];
+  portals: PortalDef[];
+  reflectors: ReflectorDef[];
+}
 
 export class PRNG {
   private s: number;
@@ -87,23 +95,71 @@ export function getLevelConfig(level: number): LevelConfig {
 export function canArrowFly(
   arrow: Arrow,
   grids: (string | null)[][][],
-  gridSize: number
+  gridSize: number,
+  portals?: PortalDef[],
+  reflectors?: ReflectorDef[]
 ): boolean {
-  const { dr, dc } = DIR_DELTA[arrow.dir];
-  const headFace = arrow.head.faceIdx;
-  let currR = arrow.head.r + dr;
-  let currC = arrow.head.c + dc;
+  let currDir = arrow.dir;
+  let currFace = arrow.head.faceIdx;
+  let currR = arrow.head.r + DIR_DELTA[currDir].dr;
+  let currC = arrow.head.c + DIR_DELTA[currDir].dc;
 
-  // Kontrollera att strålen från huvudet rakt mot kanten på den sidan är 100% tom
-  // Om något finns i vägen (en annan pil eller del av samma pil) är den blockerad!
-  while (currR >= 0 && currR < gridSize && currC >= 0 && currC < gridSize) {
-    const occ = grids[headFace][currR][currC];
-    if (occ !== null) {
+  let steps = 0;
+  const maxSteps = gridSize * 4;
+
+  while (currR >= 0 && currR < gridSize && currC >= 0 && currC < gridSize && steps < maxSteps) {
+    steps++;
+
+    // 1. Maskhål / Portal
+    if (portals && portals.length > 0) {
+      const portal = portals.find(
+        (p) =>
+          (p.portalA.faceIdx === currFace && p.portalA.r === currR && p.portalA.c === currC) ||
+          (p.portalB.faceIdx === currFace && p.portalB.r === currR && p.portalB.c === currC)
+      );
+      if (portal) {
+        const isA = portal.portalA.faceIdx === currFace && portal.portalA.r === currR && portal.portalA.c === currC;
+        const target = isA ? portal.portalB : portal.portalA;
+        currFace = target.faceIdx;
+        currR = target.r + DIR_DELTA[currDir].dr;
+        currC = target.c + DIR_DELTA[currDir].dc;
+        continue;
+      }
+    }
+
+    // 2. Prisma / Reflektor
+    if (reflectors && reflectors.length > 0) {
+      const refl = reflectors.find(
+        (r) => r.coord.faceIdx === currFace && r.coord.r === currR && r.coord.c === currC
+      );
+      if (refl) {
+        if (refl.orientation === '/') {
+          if (currDir === 'UP') currDir = 'RIGHT';
+          else if (currDir === 'LEFT') currDir = 'DOWN';
+          else if (currDir === 'DOWN') currDir = 'LEFT';
+          else if (currDir === 'RIGHT') currDir = 'UP';
+        } else {
+          if (currDir === 'UP') currDir = 'LEFT';
+          else if (currDir === 'RIGHT') currDir = 'DOWN';
+          else if (currDir === 'DOWN') currDir = 'RIGHT';
+          else if (currDir === 'LEFT') currDir = 'UP';
+        }
+        currR += DIR_DELTA[currDir].dr;
+        currC += DIR_DELTA[currDir].dc;
+        continue;
+      }
+    }
+
+    // 3. Kontrollera om cellen är upptagen av en pil
+    const occ = grids[currFace]?.[currR]?.[currC];
+    if (occ !== null && occ !== undefined) {
       return false;
     }
-    currR += dr;
-    currC += dc;
+
+    currR += DIR_DELTA[currDir].dr;
+    currC += DIR_DELTA[currDir].dc;
   }
+
   return true;
 }
 
@@ -154,11 +210,7 @@ function chooseTargetLength(prng: PRNG, maxPathLen: number): number {
  * - Nivå 21-700: Gradvis tätare beroenden och färre fria pilar.
  * - Nivå 701-1000: Extremt tajta flaskhalsar (på de sista nivåerna strikt 1 pil i taget!).
  */
-export function generateCubePuzzle(levelNumber: number): {
-  config: LevelConfig;
-  allArrows: Arrow[];
-  initialGrids: (string | null)[][][];
-} {
+export function generateCubePuzzle(levelNumber: number): PuzzleResult {
   const prng = new PRNG(levelNumber * 10007 + 7919);
   const config = getLevelConfig(levelNumber);
   const { gridSize, targetArrowCountPerFace, maxPathLength } = config;
@@ -443,6 +495,7 @@ export function generateCubePuzzle(levelNumber: number): {
   // Verifiera att pusslet är 100% lösbart
   const verifiedArrows = solveAndFilterGlobal(placedArrows, grids, gridSize);
   const finalArrows = annotateSpecialArrows(verifiedArrows, config.levelNumber, prng, gridSize);
+  const { portals, reflectors } = generateCosmicElements(config.levelNumber, finalArrows, gridSize, prng);
 
   // Bygg upp det slutgiltiga gridet
   const finalGrids: (string | null)[][][] = Array.from({ length: 6 }, () =>
@@ -454,14 +507,91 @@ export function generateCubePuzzle(levelNumber: number): {
     }
   }
 
-  return { config, allArrows: finalArrows, initialGrids: finalGrids };
+  return {
+    config,
+    allArrows: finalArrows,
+    initialGrids: finalGrids,
+    portals,
+    reflectors,
+  };
+}
+
+/**
+ * Genererar sällsynta maskhål (portaler) och prismor (reflektorer) på högre nivåer
+ * med 100 % matematisk lösbarhetskontroll mot den globala solver-motorn.
+ */
+function generateCosmicElements(
+  level: number,
+  arrows: Arrow[],
+  gridSize: number,
+  rng: PRNG
+): { portals: PortalDef[]; reflectors: ReflectorDef[] } {
+  const portals: PortalDef[] = [];
+  const reflectors: ReflectorDef[] = [];
+
+  const occupied = new Set<string>();
+  for (const a of arrows) {
+    for (const c of a.cells) {
+      occupied.add(`${c.faceIdx}:${c.r}:${c.c}`);
+    }
+  }
+
+  const emptyCoords: CubeCoord[] = [];
+  for (let f = 0; f < 6; f++) {
+    for (let r = 2; r < gridSize - 2; r++) {
+      for (let c = 2; c < gridSize - 2; c++) {
+        if (!occupied.has(`${f}:${r}:${c}`)) {
+          emptyCoords.push({ faceIdx: f, r, c });
+        }
+      }
+    }
+  }
+
+  const shuffledEmpty = rng.shuffle([...emptyCoords]);
+
+  // 1. Maskhål / Portaler (från nivå 9 och uppåt på utvalda banor)
+  if (level >= 9 && (level % 3 === 0 || level % 7 === 0) && shuffledEmpty.length >= 4) {
+    const pA = shuffledEmpty.pop()!;
+    const otherFaceIdx = shuffledEmpty.findIndex((c) => c.faceIdx !== pA.faceIdx);
+    const pB = otherFaceIdx !== -1 ? shuffledEmpty.splice(otherFaceIdx, 1)[0] : shuffledEmpty.pop()!;
+    portals.push({
+      id: `portal-${level}-1`,
+      portalA: pA,
+      portalB: pB,
+    });
+  }
+
+  // 2. Prismor / Reflektorer (från nivå 12 och uppåt på utvalda banor)
+  if (level >= 12 && (level % 4 === 0 || level % 5 === 0) && shuffledEmpty.length >= 2) {
+    const rCoord = shuffledEmpty.pop()!;
+    const orientation: '/' | '\\' = rng.next() > 0.5 ? '/' : '\\';
+    reflectors.push({
+      id: `refl-${level}-1`,
+      coord: rCoord,
+      orientation,
+    });
+  }
+
+  // 100 % LÖSBARHETSTEST: Om inte alla pilar kan lösas med dessa element, kasta dem
+  if (portals.length > 0 || reflectors.length > 0) {
+    if (!canSolveWithLinks(arrows, gridSize, portals, reflectors)) {
+      return { portals: [], reflectors: [] };
+    }
+  }
+
+  return { portals, reflectors };
 }
 
 /**
  * Validerar att pusslet förblir 100 % lösbart när länkade pilar kräver
  * att båda har fri väg samtidigt för att kunna skjutas iväg.
  */
-function canSolveWithLinks(arrows: Arrow[], gridSize: number): boolean {
+function canSolveWithLinks(
+  arrows: Arrow[],
+  gridSize: number,
+  portals?: PortalDef[],
+  reflectors?: ReflectorDef[]
+): boolean {
   const simGrids: (string | null)[][][] = Array.from({ length: 6 }, () =>
     Array.from({ length: gridSize }, () => Array(gridSize).fill(null))
   );
@@ -480,7 +610,7 @@ function canSolveWithLinks(arrows: Arrow[], gridSize: number): boolean {
     for (const [id, a] of remaining.entries()) {
       if (a.type === 'linked' && a.linkedWithId) {
         const twin = remaining.get(a.linkedWithId);
-        if (twin && canArrowFly(a, simGrids, gridSize) && canArrowFly(twin, simGrids, gridSize)) {
+        if (twin && canArrowFly(a, simGrids, gridSize, portals, reflectors) && canArrowFly(twin, simGrids, gridSize, portals, reflectors)) {
           for (const c of a.cells) simGrids[c.faceIdx][c.r][c.c] = null;
           for (const c of twin.cells) simGrids[c.faceIdx][c.r][c.c] = null;
           remaining.delete(id);
@@ -489,7 +619,7 @@ function canSolveWithLinks(arrows: Arrow[], gridSize: number): boolean {
           break;
         }
       } else {
-        if (canArrowFly(a, simGrids, gridSize)) {
+        if (canArrowFly(a, simGrids, gridSize, portals, reflectors)) {
           for (const c of a.cells) simGrids[c.faceIdx][c.r][c.c] = null;
           remaining.delete(id);
           changed = true;
