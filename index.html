@@ -229,6 +229,7 @@
           <div class="win-actions">
             <button class="btn btn-primary btn-large" id="next-level-win-btn">Nästa Bana ›</button>
             <div class="win-secondary-btns">
+              <button class="btn btn-secondary" id="win-view-planet-btn" title="Dölj vinstfönstret och betrakta 3D-himlakroppen">🪐 Betrakta i 3D</button>
               <button class="btn btn-secondary" id="win-leaderboard-btn">Visa Topplista 🏆</button>
               <button class="btn btn-secondary" id="replay-level-win-btn">Spela om Bana 🔄</button>
             </div>
@@ -426,6 +427,16 @@
 
           </div>
         </div>
+      </div>
+      <!-- Flytande HUD när vinstfönstret döljs för att betrakta 3D-himlakroppen -->
+      <div class="floating-planet-hud hidden" id="floating-planet-hud">
+        <button class="planet-hud-info-btn" id="floating-planet-explore-btn" title="Klicka för att öppna fakta och position i universum">
+          <span>🪐</span>
+          <span id="floating-planet-name">Himlakropp</span>
+          <span class="planet-hud-link-arrow">↗</span>
+        </button>
+        <span class="planet-hud-sep">•</span>
+        <button class="btn btn-primary planet-hud-menu-btn" id="floating-planet-menu-btn">Visa vinstmeny 🏆</button>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

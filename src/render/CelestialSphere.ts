@@ -8,8 +8,11 @@ export class CelestialSphere {
   private ringMesh: THREE.Mesh | null = null;
   private currentLevel: number = -1;
   private basePosition = new THREE.Vector3(3.3, 1.7, -13.5);
+  private focusPosition = new THREE.Vector3(0, 0.2, -9.5);
   private targetScale = 1.0;
   private currentScale = 1.0;
+  private isFocusMode = false;
+  private hasRingsActive = false;
 
   constructor() {
     this.group = new THREE.Group();
@@ -52,6 +55,7 @@ export class CelestialSphere {
 
     // Skapa en procedurgenererad högupplöst canvas-textur anpassad för himlakroppen
     const { canvas, emissiveColor, glowColor, hasRings, ringColors } = this.generateCelestialTexture(body);
+    this.hasRingsActive = hasRings;
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -253,7 +257,32 @@ export class CelestialSphere {
   }
 
   /**
-   * Kallas i animationsloopen: roterar himlakroppen och ger mjuk parallax
+   * Aktiverar eller inaktiverar fokusläge för himlakroppen (centrerar och skalar upp vid vinst)
+   */
+  public setFocusMode(active: boolean) {
+    this.isFocusMode = active;
+    if (active) {
+      this.targetScale = 1.25;
+    } else {
+      this.targetScale = 1.0;
+    }
+  }
+
+  public getFocusMode(): boolean {
+    return this.isFocusMode;
+  }
+
+  /**
+   * Kontrollerar om en raycast träffar himlakroppen eller dess ringar
+   */
+  public checkIntersection(raycaster: THREE.Raycaster): boolean {
+    const sphereRadius = (this.hasRingsActive ? 10.5 : 5.4) * this.currentScale;
+    const testSphere = new THREE.Sphere(this.group.position, sphereRadius);
+    return raycaster.ray.intersectsSphere(testSphere);
+  }
+
+  /**
+   * Kallas i animationsloopen: roterar himlakroppen, skalar mjukt och interpolerar position
    */
   public update(deltaSeconds: number, cameraRotationY: number = 0, cameraRotationX: number = 0) {
     // Långsam rofylld rotation
@@ -264,13 +293,26 @@ export class CelestialSphere {
 
     // Mjuk skala-interpolering
     if (Math.abs(this.currentScale - this.targetScale) > 0.001) {
-      this.currentScale += (this.targetScale - this.currentScale) * 0.08;
+      this.currentScale += (this.targetScale - this.currentScale) * 0.06;
       this.group.scale.setScalar(this.currentScale);
     }
 
-    // Parallax mot kubens orientering
-    this.group.position.x = this.basePosition.x - cameraRotationY * 0.35;
-    this.group.position.y = this.basePosition.y + cameraRotationX * 0.25;
+    // Positionsinterpolation beroende på fokusläge
+    if (this.isFocusMode) {
+      const targetX = this.focusPosition.x - cameraRotationY * 0.15;
+      const targetY = this.focusPosition.y + cameraRotationX * 0.15;
+      const targetZ = this.focusPosition.z;
+      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, targetX, 0.05);
+      this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.05);
+      this.group.position.z = THREE.MathUtils.lerp(this.group.position.z, targetZ, 0.05);
+    } else {
+      const targetX = this.basePosition.x - cameraRotationY * 0.35;
+      const targetY = this.basePosition.y + cameraRotationX * 0.25;
+      const targetZ = this.basePosition.z;
+      this.group.position.x = THREE.MathUtils.lerp(this.group.position.x, targetX, 0.06);
+      this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.06);
+      this.group.position.z = THREE.MathUtils.lerp(this.group.position.z, targetZ, 0.06);
+    }
   }
 
   public dispose() {

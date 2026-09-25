@@ -49,6 +49,12 @@ export class CubeController {
   // Callbacks
   public onHoverCell: ((hit: HitResult | null) => void) | null = null;
   public onClickCell: ((hit: HitResult) => void) | null = null;
+  public onMissClick: ((clientX: number, clientY: number) => void) | null = null;
+  public onHoverBackground: ((clientX: number, clientY: number) => void) | null = null;
+
+  public getRaycaster(): THREE.Raycaster {
+    return this.raycaster;
+  }
 
   constructor(
     camera: THREE.PerspectiveCamera,
@@ -290,7 +296,7 @@ export class CubeController {
     } else {
       // Hovring endast för muspekare (inte touch) för att spara prestanda och slippa spökhovring
       if (e.pointerType !== 'touch') {
-        this.checkHover();
+        this.checkHover(e.clientX, e.clientY);
       }
     }
   }
@@ -336,6 +342,8 @@ export class CubeController {
             clientX: clickX,
             clientY: clickY,
           });
+        } else if (this.onMissClick) {
+          this.onMissClick(clickX, clickY);
         }
       }
     }
@@ -387,15 +395,18 @@ export class CubeController {
     this.cubeGroup.quaternion.premultiply(rotX);
   }
 
-  private checkHover() {
+  private checkHover(clientX?: number, clientY?: number) {
     const hit = this.performRaycast();
     if (this.onHoverCell) {
       this.onHoverCell(hit);
     }
+    if (!hit && this.onHoverBackground && clientX !== undefined && clientY !== undefined) {
+      this.onHoverBackground(clientX, clientY);
+    }
   }
 
   public performRaycast(clientX?: number, clientY?: number): HitResult | null {
-    if (!this.cubeMesh) return null;
+    if (!this.cubeMesh || !this.cubeMesh.visible) return null;
 
     if (clientX !== undefined && clientY !== undefined) {
       this.updatePointerPos(clientX, clientY);

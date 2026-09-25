@@ -334,6 +334,33 @@ class SoundManager {
       osc.stop(startTime + dur + 0.05);
     });
   }
+
+  /**
+   * Klick- och utforskningsljud vid interaktion med knappar och 3D-himlakroppen
+   */
+  public playClick() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(660, t);
+    osc.frequency.exponentialRampToValueAtTime(1100, t + 0.08);
+
+    gain.gain.setValueAtTime(0.22, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
 }
 
 export const sound = new SoundManager();

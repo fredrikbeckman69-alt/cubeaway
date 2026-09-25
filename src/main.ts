@@ -50,6 +50,8 @@ class CubeAwayGame {
   private remainingArrows: number = 0;
   private blockedClicksCount: number = 0;
   private isVictoryAnimating: boolean = false;
+  private isCubeDissolved: boolean = false;
+  private dissolveAnimId: number | null = null;
   private currentPortals: PortalDef[] = [];
   private currentReflectors: ReflectorDef[] = [];
 
@@ -192,6 +194,8 @@ class CubeAwayGame {
 
     this.controller.onHoverCell = this.handleHover.bind(this);
     this.controller.onClickCell = this.handleClick.bind(this);
+    this.controller.onMissClick = this.handleMissClick.bind(this);
+    this.controller.onHoverBackground = this.handleHoverBackground.bind(this);
     this.controller.onPointerDownCallback = () => {
       this.cancelRotateAnimation();
     };
@@ -255,6 +259,8 @@ class CubeAwayGame {
           map: tex,
           roughness: 0.35,
           metalness: 0.05,
+          transparent: true,
+          opacity: 1.0,
         })
     );
 
@@ -274,8 +280,9 @@ class CubeAwayGame {
     this.faceRenderer.setTheme(this.currentTheme);
     document.title = `CubeAway 3D - Bana ${this.currentLevel} • ${this.currentCelestialBody.name}`;
 
-    // Uppdatera 3D-himlakropp i bakgrunden
+    // Uppdatera 3D-himlakropp i bakgrunden och återställ fokusläge
     if (this.celestialSphere) {
+      this.celestialSphere.setFocusMode(false);
       this.celestialSphere.updateCelestialBody(this.currentCelestialBody);
     }
 
@@ -283,20 +290,31 @@ class CubeAwayGame {
     if (this.cubeMesh) {
       this.cubeMesh.geometry.dispose();
       this.cubeMesh.geometry = createShapeGeometry(this.currentShape);
+      this.cubeMesh.visible = true;
       this.flyingManager.setShapeType(this.currentShape.type);
       this.controller.setCubeMesh(this.cubeMesh, this.gridSize);
       this.controller.setTargetDistance(this.currentShape.cameraDistance);
 
       const mats = this.cubeMesh.material as THREE.MeshStandardMaterial[];
       mats.forEach((mat) => {
+        mat.transparent = true;
+        mat.opacity = 1.0;
         mat.needsUpdate = true;
       });
+      this.cubeGroup.scale.set(1, 1, 1);
     }
 
     // 3. Uppdatera ljuskällor och markglöd
     if (this.dirLight1) this.dirLight1.color.setHex(this.currentTheme.dirLight1Color);
 
     // 4. Rensa tillstånd och avbryt eventuella animationer
+    if (this.dissolveAnimId !== null) {
+      cancelAnimationFrame(this.dissolveAnimId);
+      this.dissolveAnimId = null;
+    }
+    this.isCubeDissolved = false;
+    document.getElementById('floating-planet-hud')?.classList.add('hidden');
+
     this.cancelRotateAnimation();
     this.flyingManager.clearAll();
     this.particleManager.clearAll();
@@ -947,6 +965,39 @@ class CubeAwayGame {
     }
   }
 
+  private handleMissClick(clientX: number, clientY: number) {
+    if (!this.celestialSphere) return;
+    const raycaster = this.controller.getRaycaster();
+    if (this.celestialSphere.checkIntersection(raycaster)) {
+      this.openCelestialLink();
+    }
+  }
+
+  private handleHoverBackground(clientX: number, clientY: number) {
+    if (!this.celestialSphere) return;
+    const canvas = this.webglRenderer.domElement;
+    const raycaster = this.controller.getRaycaster();
+    const hitsSphere = this.celestialSphere.checkIntersection(raycaster);
+
+    if (hitsSphere) {
+      canvas.style.cursor = 'pointer';
+      canvas.title = `Klicka för att utforska ${this.currentCelestialBody.name} (${this.currentCelestialBody.sourceName}) ↗`;
+    } else {
+      canvas.style.cursor = 'grab';
+      canvas.removeAttribute('title');
+    }
+  }
+
+  public openCelestialLink() {
+    if (!this.currentCelestialBody?.url) return;
+    sound.playClick();
+    if ('vibrate' in navigator) navigator.vibrate(25);
+    const clickX = window.innerWidth / 2;
+    const clickY = window.innerHeight / 2;
+    this.spawnScoreToast(`🚀 Öppnar ${this.currentCelestialBody.name} (${this.currentCelestialBody.sourceName})...`, clickX, clickY, 'positive');
+    window.open(this.currentCelestialBody.url, '_blank', 'noopener,noreferrer');
+  }
+
   private giveHint() {
     const hint = this.allArrows.find((a) => {
       if (a.type === 'linked' && a.linkedWithId) {
@@ -1042,12 +1093,18 @@ class CubeAwayGame {
     if ('vibrate' in navigator) navigator.vibrate([40, 60, 40, 60, 100]);
     sound.playVictoryFanfare();
 
+    // Aktivera himlakroppens fokusläge direkt så den glider in mot rymdens centrum
+    if (this.celestialSphere) {
+      this.celestialSphere.setFocusMode(true);
+    }
+
     // Storslagen partikel-explosion i 3D
     this.particleManager.spawnVictoryExplosion(this.cubeGroup.position, 160);
 
-    // Filmisk seger-kameraåkning (mjuk slerp och utzoomning under 1.4s)
+    // Upplösningssekvens: Kuben förvandlas till kosmiskt stjärnstoft och upplöses helt
     const startTime = performance.now();
-    const duration = 1400;
+    const duration = 1500;
+    const mats = (this.cubeMesh?.material as THREE.MeshStandardMaterial[]) || [];
 
     const victoryStep = () => {
       const now = performance.now();
@@ -1057,14 +1114,41 @@ class CubeAwayGame {
 
       this.cubeGroup.rotation.y += 0.035 * (1 - easeT * 0.4);
 
+      // Kuben upplöses: tona ut materialens opacitet gradvis
+      const currentOpacity = Math.max(0, 1.0 - t * 1.15);
+      mats.forEach((m) => {
+        m.opacity = currentOpacity;
+        m.transparent = true;
+      });
+
+      // Lätt kosmisk expansion under upplösningen
+      const currentScale = 1.0 + easeT * 0.1;
+      this.cubeGroup.scale.setScalar(currentScale);
+
+      // Skjut ut gnistor / stjärnstoft under upplösningen
+      if (t < 0.85 && Math.random() < 0.45) {
+        const randOffset = new THREE.Vector3(
+          (Math.random() - 0.5) * 2.8,
+          (Math.random() - 0.5) * 2.8,
+          (Math.random() - 0.5) * 2.8
+        );
+        this.particleManager.spawnVictoryExplosion(
+          this.cubeGroup.position.clone().add(randOffset),
+          10
+        );
+      }
+
       if (t < 1) {
-        requestAnimationFrame(victoryStep);
+        this.dissolveAnimId = requestAnimationFrame(victoryStep);
       } else {
+        this.dissolveAnimId = null;
+        if (this.cubeMesh) this.cubeMesh.visible = false;
+        this.isCubeDissolved = true;
         this.isVictoryAnimating = false;
         this.showWinModal(winBonus, stars);
       }
     };
-    requestAnimationFrame(victoryStep);
+    this.dissolveAnimId = requestAnimationFrame(victoryStep);
   }
 
   private showWinModal(
@@ -1186,6 +1270,7 @@ class CubeAwayGame {
     }
 
     if (modal) {
+      document.getElementById('floating-planet-hud')?.classList.add('hidden');
       modal.classList.remove('hidden');
     }
   }
@@ -1194,6 +1279,15 @@ class CubeAwayGame {
     const modal = document.getElementById('win-modal');
     if (modal) {
       modal.classList.add('hidden');
+    }
+    // Om banan är avklarad och kuben är upplöst, visa flytande indikator för att betrakta 3D-himlakroppen
+    if (this.isCubeDissolved && this.remainingArrows === 0) {
+      const planetHud = document.getElementById('floating-planet-hud');
+      if (planetHud) {
+        planetHud.classList.remove('hidden');
+        const nameEl = document.getElementById('floating-planet-name');
+        if (nameEl) nameEl.textContent = this.currentCelestialBody.name;
+      }
     }
   }
 
@@ -1319,6 +1413,16 @@ class CubeAwayGame {
     // Klicka bort vinstmodal och time-over modal via hörnkryss
     document.getElementById('close-win-modal-btn')?.addEventListener('click', () => {
       this.hideWinModal();
+    });
+    document.getElementById('win-view-planet-btn')?.addEventListener('click', () => {
+      this.hideWinModal();
+    });
+    document.getElementById('floating-planet-menu-btn')?.addEventListener('click', () => {
+      document.getElementById('floating-planet-hud')?.classList.add('hidden');
+      document.getElementById('win-modal')?.classList.remove('hidden');
+    });
+    document.getElementById('floating-planet-explore-btn')?.addEventListener('click', () => {
+      this.openCelestialLink();
     });
     document.getElementById('close-time-over-modal-btn')?.addEventListener('click', () => {
       document.getElementById('time-over-modal')?.classList.add('hidden');
