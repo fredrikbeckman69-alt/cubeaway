@@ -7,7 +7,7 @@ export class CelestialSphere {
   private glowMesh: THREE.Mesh;
   private ringMesh: THREE.Mesh | null = null;
   private currentLevel: number = -1;
-  private basePosition = new THREE.Vector3(2.8, 1.4, -13.5);
+  private basePosition = new THREE.Vector3(3.3, 1.7, -13.5);
   private targetScale = 1.0;
   private currentScale = 1.0;
 
@@ -15,8 +15,8 @@ export class CelestialSphere {
     this.group = new THREE.Group();
     this.group.position.copy(this.basePosition);
 
-    // Grundläggande sfärgeometri
-    const sphereGeo = new THREE.SphereGeometry(3.6, 48, 48);
+    // Grundläggande sfärgeometri (ökat mått för ståtligare rymdkänsla)
+    const sphereGeo = new THREE.SphereGeometry(5.0, 48, 48);
     const sphereMat = new THREE.MeshStandardMaterial({
       roughness: 0.7,
       metalness: 0.1,
@@ -29,7 +29,7 @@ export class CelestialSphere {
     this.group.add(this.sphereMesh);
 
     // Atmosfärisk / korona-glöd runt himlakroppen
-    const glowGeo = new THREE.SphereGeometry(3.85, 32, 32);
+    const glowGeo = new THREE.SphereGeometry(5.35, 32, 32);
     const glowMat = new THREE.MeshBasicMaterial({
       color: 0xffaa44,
       transparent: true,
@@ -89,7 +89,7 @@ export class CelestialSphere {
     }
 
     if (hasRings) {
-      const ringGeo = new THREE.RingGeometry(4.4, 7.2, 64);
+      const ringGeo = new THREE.RingGeometry(6.0, 10.0, 64);
       // Vänd ringens UV för koncentrisk texturering
       const ringCanvas = document.createElement('canvas');
       ringCanvas.width = 256;
