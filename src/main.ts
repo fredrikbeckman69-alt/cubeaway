@@ -61,6 +61,7 @@ class CubeAwayGame {
   // Konstanter
   private readonly CUBE_SIZE = 3.8;
   private lastAnimateTime: number = performance.now();
+  private boundAnimate = (now: number) => this.animate(now);
 
   constructor() {
     // 1. Three.js-scen med kosmisk rymdbakgrund
@@ -231,7 +232,7 @@ class CubeAwayGame {
 
     this.loadLevel(this.currentLevel);
 
-    this.animate(performance.now());
+    this.boundAnimate(performance.now());
   }
 
 
@@ -412,6 +413,11 @@ class CubeAwayGame {
       const targetCelestial = getCelestialBody(this.leaderboardViewLevel);
       if (selectedLevelNum) selectedLevelNum.textContent = this.leaderboardViewLevel.toString();
       if (levelTitle) levelTitle.textContent = `Bana ${this.leaderboardViewLevel} • ${targetCelestial.name}`;
+
+      const lbPrev = document.getElementById('lb-prev-level') as HTMLButtonElement | null;
+      const lbNext = document.getElementById('lb-next-level') as HTMLButtonElement | null;
+      if (lbPrev) lbPrev.disabled = this.leaderboardViewLevel <= 1;
+      if (lbNext) lbNext.disabled = this.leaderboardViewLevel >= 1000;
     } else {
       tabLevelBtn?.classList.remove('active');
       tabAlltimeBtn?.classList.add('active');
@@ -529,6 +535,11 @@ class CubeAwayGame {
         levelStars.textContent = '☆☆☆';
       }
     }
+
+    const prevLevelBtn = document.getElementById('prev-level-btn') as HTMLButtonElement | null;
+    const nextLevelBtn = document.getElementById('next-level-btn') as HTMLButtonElement | null;
+    if (prevLevelBtn) prevLevelBtn.disabled = this.currentLevel <= 1;
+    if (nextLevelBtn) nextLevelBtn.disabled = this.currentLevel >= 1000;
 
     const remainingVal = document.getElementById('remaining-arrows');
     if (remainingVal) {
@@ -650,8 +661,12 @@ class CubeAwayGame {
     );
 
     // Rensa eventuella highlights
-    if (this.hintArrowId === arrow.id) this.hintArrowId = null;
-    if (this.hoveredArrowId === arrow.id) this.hoveredArrowId = null;
+    if (this.hintArrowId === arrow.id || (arrow.linkedWithId && this.hintArrowId === arrow.linkedWithId)) {
+      this.hintArrowId = null;
+    }
+    if (this.hoveredArrowId === arrow.id || (arrow.linkedWithId && this.hoveredArrowId === arrow.linkedWithId)) {
+      this.hoveredArrowId = null;
+    }
 
     // Ta bort från allArrows
     this.allArrows.splice(arrowIdx, 1);
@@ -1038,6 +1053,15 @@ class CubeAwayGame {
       }
     }
 
+    const nextBtn = document.getElementById('next-level-win-btn') as HTMLButtonElement | null;
+    if (nextBtn) {
+      if (this.currentLevel >= 1000) {
+        nextBtn.textContent = 'Börja om från Bana 1 🌟';
+      } else {
+        nextBtn.textContent = 'Nästa Bana ›';
+      }
+    }
+
     if (modal) {
       modal.classList.remove('hidden');
     }
@@ -1084,6 +1108,7 @@ class CubeAwayGame {
     const soundBtn = document.getElementById('sound-btn');
     const soundIcon = document.getElementById('sound-icon');
     soundBtn?.addEventListener('click', () => {
+      sound.initCtx();
       const muted = sound.toggleMute();
       if (soundIcon) {
         soundIcon.textContent = muted ? '🔇' : '🔊';
@@ -1115,6 +1140,13 @@ class CubeAwayGame {
     document.getElementById('level-display')?.addEventListener('click', openModal);
     document.getElementById('close-level-modal')?.addEventListener('click', closeModal);
 
+    const levelInput = document.getElementById('level-input') as HTMLInputElement | null;
+    levelInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('jump-level-btn')?.click();
+      }
+    });
+
     document.getElementById('jump-level-btn')?.addEventListener('click', () => {
       const input = document.getElementById('level-input') as HTMLInputElement;
       if (input) {
@@ -1135,7 +1167,11 @@ class CubeAwayGame {
     });
 
     document.getElementById('next-level-win-btn')?.addEventListener('click', () => {
-      this.loadLevel(this.currentLevel + 1);
+      if (this.currentLevel >= 1000) {
+        this.loadLevel(1);
+      } else {
+        this.loadLevel(this.currentLevel + 1);
+      }
     });
     document.getElementById('replay-level-win-btn')?.addEventListener('click', () => {
       this.loadLevel(this.currentLevel, true);
@@ -1430,7 +1466,7 @@ class CubeAwayGame {
   }
 
   private animate(now: number) {
-    requestAnimationFrame(this.animate.bind(this));
+    requestAnimationFrame(this.boundAnimate);
 
     const deltaSeconds = 0.016;
     const deltaMs = Math.min(now - this.lastAnimateTime, 100);

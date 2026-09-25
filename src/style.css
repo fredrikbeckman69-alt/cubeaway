@@ -299,6 +299,13 @@ html, body {
   text-shadow: 0 0 8px #ff00ea;
 }
 
+.nav-arrow-btn:disabled,
+.btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* Pilar-räknare & framsteg */
 .arrow-counter-container {
   display: flex;
